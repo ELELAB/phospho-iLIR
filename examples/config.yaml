@@ -1,0 +1,39 @@
+lirs:
+  outpsitessuffix: -phosphosites
+  lcontext: 8
+  rcontext: 10
+
+variants:
+  outsuffix: -variants
+  substitutions:
+    "S": E 
+    "T": E
+    "Y": E
+
+ilir:
+  executable: /data/tools_scripts_repository/CBL-scripts/CBL-SB/ilir/ilir
+  dirname: ilir
+  outsuffix: -ilir
+
+netphos:
+  executable: netphos
+  procscript: /data/user/valentina/test_phosphoilir/process_netphos_output.py
+  dirname: netphos
+  rawoutsuffix: -netphos
+  procoutsuffix: -netphos_processed
+
+spider3:
+  executable: spider3
+  dirname: spider3
+  aggregation:
+    outsuffix: -spider3
+
+psipred:
+  executable: /usr/local/psipred/runpsipred
+  dirname: psipred
+  aggregation:
+    outsuffix: -psipred
+    # HTML aggregation file (Coils, Helix, Strand)
+    cmaps: Blues, Greens, Oranges
+    chunksize: 20
+
