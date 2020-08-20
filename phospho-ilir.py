@@ -12,7 +12,6 @@ import subprocess
 import sys
 import urllib
 import urllib.request
-import yaml
 # dask
 import dask
 import distributed
@@ -24,6 +23,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mplcolors
 import matplotlib.pyplot as plt
 import pandas as pd
+import yaml
 
 # to address a bug that resets the distributed.worker
 # logger to WARNING level when a task is launched on
