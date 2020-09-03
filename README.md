@@ -35,7 +35,7 @@ Finally, the following Python packages must be installed:
 * `dask` and `dask distributed` v2.21.0 or higher
 * `matplotlib` v3.2.1 or higher
 * `pandas` v1.0.3 or higher
-* `PyYaml` v5.3.1 or higher
+* `PyYAML` v5.3.1 or higher
 
 ## Installation
 
@@ -84,6 +84,7 @@ Q00000
 ----| spider3
 ----| lir_8-15
 ----|----| lir_8_15.fasta
+----|----| lir_8_15-ilir.csv
 ----|----| lir_8_15-phosphosites.csv
 ----|----| lir_8_15-psipred.csv
 ----|----| lir_8_15-psipred.html
@@ -108,6 +109,7 @@ Q00000
 ----| lir_18-25
 ----|----| lir_18_25-phosphosites.csv
 ----|----| lir_18_25.fasta
+----|----| lir_18_25-ilir.csv
 ----|----| lir_18_25-psipred.csv
 ----|----| lir_18_25-psipred.html
 ----|----| lir_18_25-spider3.csv
@@ -122,15 +124,17 @@ Q00000
 
 The directories `ilir`, `netphos`, `psipred` and `spider3` contain the results of iLIR, NetPhos, PSIPRED and Spider3 for the willd-type sequence and each LIR variant (the names of these directories can be changed in the configuration file). 
 
-`.fasta` files are FASTA files containing the sequence of either the full-length protein corresponding to the UniProt ID (`Q00000.fasta`) or a LIR sequence (`lir_*.fasta` for the wild-type LIR sequences and `var_*.fasta` for all variants containing phosphomimetic mutations).
+`.fasta` files are FASTA files containing the sequence of either the full-length protein corresponding to the UniProt ID (`Q00000.fasta`) or a wild-type LIR sequence (`lir_*.fasta`) or the sequence of a full-length protein variant containing phosphomimetic mutations in a LIR motif  (`var_*.fasta`).
 
-`lir_*-variants.csv` and `lir_*-variants.md` are files summarizing the information about all the phosphomimetic variants generating for a specific LIR, either as a dataframe in a CSV file or a more readable Markdown file (useful as a report).
+`lir_*-variants.csv` and `lir_*-variants.md` are files summarizing the information about all the phosphomimetic variants generated for a specific LIR, either as a dataframe in a CSV file or as Markdown file (useful as a report).
+
+`lir-*-ilir.csv` files are CSV files containing a dataframe summarizing the iLIR results for all the variants of a specific LIR.
 
 `lir_*-phosphosites.csv` are CSV files containing a dataframe of all the phosphosites found by NetPhos for a specific LIR.
 
 `lir_*-spider3.csv` files are CSV files containing a dataframe summarizing the Spider3 results for all the variants of a specific LIR.
 
-`lir_*-psipred.csv` and `lir_*-psipred.html` are files summarizing the PSIPRED results for all the variants of a specific LIR either as a CSV file containing a dataframe or in a more readable HTML file (useful as a report).
+`lir_*-psipred.csv` and `lir_*-psipred.html` are files summarizing the PSIPRED results for all the variants of a specific LIR either as a CSV file containing a dataframe or as a HTML file where the protein sequence is color-coded according to the secondary structure propensity of each residue (useful as a report).
 
 ## References
 
