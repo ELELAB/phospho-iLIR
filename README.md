@@ -73,6 +73,8 @@ A YAML file containing the script configuration (please see the `config.yaml` fi
 
 #### Outputs
 
+Note: the generation of the outputs for Spider3 and/or PSIPRED depends on whether in the configuration file the option for running them was turned on/off.
+
 Suppose we have a list containing only one UniProt ID named Q0000, and we find two LIRs at positions 10-13 and 20-23 and three phosphorylation sites at position S8, S9 and Y25. In the configuration file, we decided to include as "flanking regions" two residues at each side of the LIR, and to use glutamate as phosphomimetic residue for both serine and tyrosine. The script will generate the following directory tree:
 
 ```
