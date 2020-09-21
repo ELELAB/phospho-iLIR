@@ -15,8 +15,7 @@ import urllib.request
 # dask
 import dask
 import distributed
-from distributed import wait, as_completed, fire_and_forget
-from distributed.config import initialize_logging
+from distributed import fire_and_forget
 import distributed.utils
 # others
 import matplotlib.cm as cm
@@ -28,26 +27,30 @@ import yaml
 # to address a bug that resets the distributed.worker
 # logger to WARNING level when a task is launched on
 # the worker, no matter what the configuration was
-def reset_logger(logger):
+def reset_worker_logger():
     """Utility function to reset a Dask logger handlers
     and level to desired values.
     """
 
-    # change the logger level
+    # new level
     NEWLEVEL = logging.INFO
-    # accepted handler are only the Dask DequeHandler
-    # and any file handler (no other StreamHandler
-    # is accepted to avoid double logging to the console)
-    acceptedhandlers = [logging.FileHandler, \
-                        distributed.utils.DequeHandler]
-    # get the handlers
-    handlers = logger.handlers
-    # reset the handlers 
-    logger.handlers = [h for h in handlers \
-                       if type(h).__name__ in acceptedhandlers]
-    # reset the level to the new level
+    # get the logger
+    logger = logging.getLogger("distributed.worker")
+    # define the handlers to keep
+    htokeep = [h for h in logger.handlers if type(h).__name__ == \
+               distributed.utils.DequeHandler.__name__]
+    # remove all the handlers
+    for h in logger.handlers:
+        logger.removeHandler(h)
+    # add the handlers to keep
+    for h in htokeep:
+        # set the new level
+        h.setLevel(NEWLEVEL)
+        # add the handler to the logger
+        logger.addHandler(h)
+    # reset the logger level to the new level
     logger.setLevel(NEWLEVEL)
-    # return the logger
+    # return the new logger
     return logger
 
 
@@ -64,7 +67,7 @@ def run_psipred(executable, \
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
     
     # make sure that the specified directory exists.
     # If not, create it.
@@ -87,7 +90,7 @@ def run_ilir(executable, \
     """
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # make sure that the specified directory exists.
     # If not, create it.
@@ -108,7 +111,7 @@ def run_netphos(executable, \
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # make sure that the specified directory exists.
     # If not, create it. 
@@ -130,7 +133,7 @@ def run_spider3(executable, \
     """
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # make sure that the specified directory exists.
     # If not, create it.  
@@ -153,7 +156,7 @@ def run_process_netphos_output(interpreter, \
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # make sure that the specified directory exists.
     # If not, create it.
@@ -174,7 +177,7 @@ def get_uniprotids(uniprotidsfile):
     """
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # parse the file and return the list
     with open(uniprotidsfile, "r") as f:
@@ -186,7 +189,7 @@ def get_sequence_from_fasta(fastapath):
     """
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
     
     # parse the FASTA file
     with open(fastapath, "r") as f:
@@ -209,7 +212,7 @@ def get_lirs_ilir(ilirres, \
     # dask Client.submit() or similar
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # read the dataframe containing the iLIR results
     ildf = pd.read_csv(ilirres, sep = ",", index_col = 0)
@@ -254,7 +257,7 @@ def get_phosphosites_netphos(netphosres):
     # dask Client.submit() or similar
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
     
     # read the CSV file as a dataframe
     npdf = pd.read_csv(netphosres, sep = ",")
@@ -277,7 +280,7 @@ def get_extended_lir(lir, \
     # since it should come from UniProt
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
     
     # get the LIR sequence and its starting and
     # ending point
@@ -322,7 +325,7 @@ def get_lir_phosphosites(lir, psites):
     # dask Client.submit() or similar
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
     
     # get the LIR name, sequence, starting and ending point
     name, seq, start, end = lir
@@ -360,7 +363,7 @@ def get_variants(lir, fullseq, lirpsites, pres2pmim):
     # dask Client.submit() or similar
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
     
     # get the LIR name, sequence, starting and ending point
     name, seq, start, end = lir
@@ -434,7 +437,7 @@ def aggregate_ss_results(ssres, source, groupby):
     """Aggregate secondary structure prediction results."""
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     if source == "psipred":
         # PSIPRED .ss2 file columns names
@@ -490,7 +493,7 @@ def get_and_write_fasta(uniprotid, fastapath):
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # get the path to the FASTA file and the name of the file
     path, fastafile = os.path.split(fastapath)
@@ -514,7 +517,7 @@ def write_fasta(sequence, fastapath):
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))  
+    logger = reset_worker_logger() 
     
     # get the path to the FASTA file and the name of the file
     path, fastafile = os.path.split(fastapath)
@@ -534,7 +537,7 @@ def write_lir_phosphosites_csv(lirpsites, outcsv):
     """
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # get relative positions (= positions in the LIR),
     # absolute positions (= positions in the full sequence)
@@ -556,7 +559,7 @@ def write_variants_csv(variants, outcsv):
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # function to join list elements into a string
     list2str = lambda x: ",".join(map(str, x))
@@ -589,7 +592,7 @@ def write_variants_markdown(variants, outmd):
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     with open(outmd, "w") as o:
         # write the header of the table
@@ -621,7 +624,7 @@ def write_ilir_csv(ilirres, \
     """
     
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # create an empty dictionary to store the processed
     # iLIR results
@@ -668,7 +671,7 @@ def write_ss_csv(ssdfs, \
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # wild type LIR sequence, start and end points are needed to set
     # the column names (residue type and number) and to select only
@@ -702,7 +705,7 @@ def write_psipred_html(psipreddfs, \
     """
 
     # reset the distributed.worker logger
-    logger = reset_logger(logging.getLogger("distributed.worker"))
+    logger = reset_worker_logger()
 
     # get the sequence starting and ending points
     seqstart = start
@@ -814,14 +817,12 @@ if __name__ == "__main__":
     # add arguments
     i_helpstr = "File containing the list of UniProt IDs."
     parser.add_argument("-i", "--idsfile", \
-                        dest = "idsfile", \
                         type = str, \
                         required = True, \
                         help = i_helpstr)
 
     c_helpstr = "Configuration file."
     parser.add_argument("-c", "--configfile", \
-                        dest = "configfile", \
                         type = str, \
                         required = True, \
                         help = c_helpstr)
@@ -829,17 +830,13 @@ if __name__ == "__main__":
     d_helpstr = \
         "Working directory. Default is the current working directory."
     parser.add_argument("-d", "--workdir", \
-                        dest = "workdir", \
                         type = str, \
-                        required = False, \
                         default = os.getcwd(), \
                         help = d_helpstr)
 
     n_helpstr = "Number of processes to use. Default is one process."
     parser.add_argument("-n", "--nproc", \
-                        dest = "nproc", \
                         type = int, \
-                        required = False, \
                         default = 1, \
                         help = n_helpstr)
 
@@ -848,70 +845,15 @@ if __name__ == "__main__":
 
 
     ###################### LOGGING CONFIGURATION ######################
-
-    # Dask logger configuration
-    logging_config = {
-        "version": 1, 
-
-        "formatters": {
-            "fmter" : 
-                {"format": \
-                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"},
-            },
-        
-        "handlers" : {
-            "file" :  {
-                "class": "logging.FileHandler",
-                "filename": "output.log",
-                "mode" : "w", 
-                "level": "INFO", 
-                "formatter" : "fmter"
-            },
-            
-            "console" : {
-                "class": "logging.StreamHandler",
-                "level": "DEBUG",
-                "stream": "ext://sys.stdout",
-                "formatter" : "fmter"
-            }
-        },
-        
-        "loggers" : {
-            "distributed.client" : {
-                "level" : "WARNING", 
-                "handlers": ["console", "file"],
-                "propagate" : False
-            },
-            
-            "distributed.worker" : {
-                "propagate" : False
-            },
-
-            "distributed" : {
-                "level": "WARNING",
-                "handlers": ["console"],
-                "propagate" : False
-            },
-            
-            "distributed.scheduler" : {
-                "level": "WARNING",
-                "handlers": ["console"],
-                "propagate" : False
-            },
-        }
-    }
-
     
     logging.basicConfig(level = logging.DEBUG)
-    dask.config.config["logging"] = logging_config
-    initialize_logging(dask.config.config)
 
 
     ###################### GENERAL CONFIGURATION ######################
  
     # UniProt IDs file
     IDSFILE = args.idsfile
-    # configuration file
+    # load and parse the configuration
     CONFIG = yaml.full_load(open(args.configfile, "r"))
     # top-level working directory
     WD = args.workdir
@@ -919,37 +861,44 @@ if __name__ == "__main__":
     NPROC = args.nproc
     
     # LIRs
-    LIRPSITESCSV = CONFIG["lirs"]["outpsitessuffix"] + ".csv"
-    LCONTEXT = CONFIG["lirs"]["lcontext"]
-    RCONTEXT = CONFIG["lirs"]["rcontext"]
+    LIRCONFIG = CONFIG["lirs"]
+    LIRPSITESCSV = LIRCONFIG["outpsitessuffix"] + ".csv"
+    LCONTEXT = LIRCONFIG["lcontext"]
+    RCONTEXT = LIRCONFIG["rcontext"]
     # variants
-    VARCSV = CONFIG["variants"]["outsuffix"] + ".csv"
-    VARMD = CONFIG["variants"]["outsuffix"] + ".md"
-    PRES2PMIM = CONFIG["variants"]["substitutions"]
+    VARCSV = LIRCONFIG["variants"]["outsuffix"] + ".csv"
+    VARMD = LIRCONFIG["variants"]["outsuffix"] + ".md"
+    PRES2PMIM = LIRCONFIG["variants"]["substitutions"]
     # iLIR
-    ILEXEC = CONFIG["ilir"]["executable"]
-    ILDIR = CONFIG["ilir"]["dirname"]
-    ILHTML = CONFIG["ilir"]["outsuffix"] + ".html"
-    ILCSV = CONFIG["ilir"]["outsuffix"] + ".csv"
+    ILCONFIG = CONFIG["ilir"]
+    ILEXEC = ILCONFIG["executable"]
+    ILDIR = ILCONFIG["dirname"]
+    ILHTML = ILCONFIG["outsuffix"] + ".html"
+    ILCSV = ILCONFIG["outsuffix"] + ".csv"
     # NetPhos
-    NPEXEC = CONFIG["netphos"]["executable"]
-    NPSCRIPT = CONFIG["netphos"]["procscript"]
-    NPDIR = CONFIG["netphos"]["dirname"]
-    NPDAT = CONFIG["netphos"]["rawoutsuffix"] + ".dat"
-    NPCSV = CONFIG["netphos"]["procoutsuffix"] + ".csv"
+    NPCONFIG = CONFIG["netphos"]
+    NPEXEC = NPCONFIG["executable"]
+    NPSCRIPT = NPCONFIG["procscript"]
+    NPDIR = NPCONFIG["dirname"]
+    NPDAT = NPCONFIG["rawoutsuffix"] + ".dat"
+    NPCSV = NPCONFIG["procoutsuffix"] + ".csv"
     # Spider3
-    SP3EXEC = CONFIG["spider3"]["executable"]
-    SP3DIR = CONFIG["spider3"]["dirname"]
-    SP3CSV = CONFIG["spider3"]["aggregation"]["outsuffix"] + ".csv"
+    SP3CONFIG = CONFIG["spider3"]
+    SP3RUN = SP3CONFIG["run"]
+    SP3EXEC = SP3CONFIG["executable"]
+    SP3DIR = SP3CONFIG["dirname"]
+    SP3CSV = SP3CONFIG["aggregation"]["outsuffix"] + ".csv"
     # PsiPred
-    PSIEXEC = CONFIG["psipred"]["executable"]
-    PSIDIR = CONFIG["psipred"]["dirname"]
-    PSICSV = CONFIG["psipred"]["aggregation"]["outsuffix"] + ".csv"
-    PSIHTML = CONFIG["psipred"]["aggregation"]["outsuffix"] + ".html"
-    cmaps = CONFIG["psipred"]["aggregation"]["cmaps"]
-    PSHIHTMLCMAPS = \
-        [plt.get_cmap(cmap.strip()) for cmap in cmaps.split(",")]
-    PSIHTMLCHUNKSIZE = CONFIG["psipred"]["aggregation"]["chunksize"]
+    PSICONFIG = CONFIG["psipred"]
+    PSIRUN = PSICONFIG["run"]
+    PSIEXEC = PSICONFIG["executable"]
+    PSIDIR = PSICONFIG["dirname"]
+    PSICSV = PSICONFIG["aggregation"]["outsuffix"] + ".csv"
+    PSIHTML = PSICONFIG["aggregation"]["outsuffix"] + ".html"
+    CMAPS = PSICONFIG["aggregation"]["cmaps"]
+    PSIHTMLCMAPS = \
+        [plt.get_cmap(cmap.strip()) for cmap in CMAPS.split(",")]
+    PSIHTMLCHUNKSIZE = PSICONFIG["aggregation"]["chunksize"]
     
     # generate callables from the functions with the executables set
     partsp3 = functools.partial(run_spider3, \
@@ -1038,18 +987,20 @@ if __name__ == "__main__":
             psites = client.submit(get_phosphosites_netphos, \
                                    netphosres = npcsv)
             
-            # launch Spider3 and forget about it
-            sp3dir = os.path.join(upiddir, SP3DIR)
-            fire_and_forget(client.submit(partsp3, \
-                                          fasta = fasta, \
-                                          outprefix = upid, \
-                                          wd = sp3dir))
-  
-            # launch spider3 and forget about it
-            psidir = os.path.join(upiddir, PSIDIR)
-            fire_and_forget(client.submit(partpsi, \
-                                          fasta = fasta, \
-                                          wd = psidir))
+            if SP3RUN:
+                # launch Spider3 and forget about it
+                sp3dir = os.path.join(upiddir, SP3DIR)
+                fire_and_forget(client.submit(partsp3, \
+                                              fasta = fasta, \
+                                              outprefix = upid, \
+                                              wd = sp3dir))
+            
+            if PSIRUN:
+                # launch spider3 and forget about it
+                psidir = os.path.join(upiddir, PSIDIR)
+                fire_and_forget(client.submit(partpsi, \
+                                              fasta = fasta, \
+                                              wd = psidir))
 
 
             #------------------------- LIRs --------------------------#
@@ -1157,76 +1108,80 @@ if __name__ == "__main__":
                                       outhtml = varilhtml, \
                                       outcsv = varilcsv, \
                                       wd = varildir))
-                    
-                    # run Spider3
-                    varsp3dir = os.path.join(vardir, SP3DIR)
-                    varsp3res[varname] = \
-                        os.path.join(varsp3dir, varname + ".i1")
-                    varsp3futures.append(\
-                        client.submit(partsp3, \
-                                      fasta = varfasta, \
-                                      outprefix = varname, \
-                                      wd = varsp3dir))
 
-                    # run PSIPRED
-                    varpsidir = os.path.join(vardir, PSIDIR)
-                    varpsires[varname] = \
-                        os.path.join(varpsidir, varname + ".ss2")
-                    varpsifutures.append(\
-                        client.submit(partpsi, \
-                                      fasta = varfasta, \
-                                      wd = varpsidir))
+                    if SP3RUN:                  
+                        # run Spider3
+                        varsp3dir = os.path.join(vardir, SP3DIR)
+                        varsp3res[varname] = \
+                            os.path.join(varsp3dir, varname + ".i1")
+                        varsp3futures.append(\
+                            client.submit(partsp3, \
+                                          fasta = varfasta, \
+                                          outprefix = varname, \
+                                          wd = varsp3dir))
+
+                    if PSIRUN:
+                        # run PSIPRED
+                        varpsidir = os.path.join(vardir, PSIDIR)
+                        varpsires[varname] = \
+                            os.path.join(varpsidir, varname + ".ss2")
+                        varpsifutures.append(\
+                            client.submit(partpsi, \
+                                          fasta = varfasta, \
+                                          wd = varpsidir))
 
            
                 #------------------- Aggregation ---------------------#
        
 
-                # gather Spider3 results for all variants
-                client.gather(varsp3futures)
-                sp3ssdfs = client.submit(\
-                                aggregate_ss_results, \
-                                ssres = varsp3res, \
-                                source = "spider3", \
-                                groupby = "variant")
-                
-                # write a summary CSV file of the Spider3 results
-                outsp3csv = os.path.join(lirdir, lirname + SP3CSV)
-                fire_and_forget(client.submit(\
-                                write_ss_csv, \
-                                ssdfs = sp3ssdfs, \
-                                wtseq = lirseq, \
-                                start = lirstart, \
-                                end = lirend, \
-                                outcsv = outsp3csv))
+                if SP3RUN:
+                    # gather Spider3 results for all variants
+                    client.gather(varsp3futures)
+                    sp3ssdfs = client.submit(\
+                                    aggregate_ss_results, \
+                                    ssres = varsp3res, \
+                                    source = "spider3", \
+                                    groupby = "variant")
+                    
+                    # write a summary CSV file of the Spider3 results
+                    outsp3csv = os.path.join(lirdir, lirname + SP3CSV)
+                    fire_and_forget(client.submit(\
+                                    write_ss_csv, \
+                                    ssdfs = sp3ssdfs, \
+                                    wtseq = lirseq, \
+                                    start = lirstart, \
+                                    end = lirend, \
+                                    outcsv = outsp3csv))
 
-                # gather PSIPRED results for all variants
-                client.gather(varpsifutures)
-                psissdfs = client.submit(\
-                                aggregate_ss_results, \
-                                ssres = varpsires, \
-                                source = "psipred", \
-                                groupby = "variant")
-                
-                # write a summary CSV file of the PSIPRED results
-                outpsicsv = os.path.join(lirdir, lirname + PSICSV)
-                fire_and_forget(client.submit(\
-                                write_ss_csv, \
-                                ssdfs = psissdfs, \
-                                wtseq = lirseq, \
-                                start = lirstart, \
-                                end = lirend, \
-                                outcsv = outpsicsv))
-                
-                # write a summary HTML file of the PSIPRED results
-                outpsihtml = os.path.join(lirdir, lirname + PSIHTML)
-                fire_and_forget(client.submit(\
-                                write_psipred_html, \
-                                psipreddfs = psissdfs, \
-                                start = lirstart, \
-                                end = lirend, \
-                                outhtml = outpsihtml, \
-                                cmaps = PSHIHTMLCMAPS, \
-                                chunksize = PSIHTMLCHUNKSIZE))
+                if PSIRUN:
+                    # gather PSIPRED results for all variants
+                    client.gather(varpsifutures)
+                    psissdfs = client.submit(\
+                                    aggregate_ss_results, \
+                                    ssres = varpsires, \
+                                    source = "psipred", \
+                                    groupby = "variant")
+                    
+                    # write a summary CSV file of the PSIPRED results
+                    outpsicsv = os.path.join(lirdir, lirname + PSICSV)
+                    fire_and_forget(client.submit(\
+                                    write_ss_csv, \
+                                    ssdfs = psissdfs, \
+                                    wtseq = lirseq, \
+                                    start = lirstart, \
+                                    end = lirend, \
+                                    outcsv = outpsicsv))
+                    
+                    # write a summary HTML file of the PSIPRED results
+                    outpsihtml = os.path.join(lirdir, lirname + PSIHTML)
+                    fire_and_forget(client.submit(\
+                                    write_psipred_html, \
+                                    psipreddfs = psissdfs, \
+                                    start = lirstart, \
+                                    end = lirend, \
+                                    outhtml = outpsihtml, \
+                                    cmaps = PSIHTMLCMAPS, \
+                                    chunksize = PSIHTMLCHUNKSIZE))
 
                 # gather iLIR results for all variants
                 client.gather(varilfutures)
