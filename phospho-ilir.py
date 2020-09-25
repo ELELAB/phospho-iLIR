@@ -846,7 +846,7 @@ if __name__ == "__main__":
 
     ###################### LOGGING CONFIGURATION ######################
     
-    logging.basicConfig(level = logging.DEBUG)
+    logging.basicConfig(level = logging.INFO)
 
 
     ###################### GENERAL CONFIGURATION ######################
