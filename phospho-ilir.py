@@ -806,7 +806,7 @@ def write_psipred_html(psipreddfs, \
 
 
 
-if __name__ == "__main__":
+def main():
 
 
     ######################### ARGUMENT PARSER #########################
@@ -1193,4 +1193,7 @@ if __name__ == "__main__":
                                 lirstart = rawlirstart, \
                                 lirend = rawlirend, \
                                 outcsv = outilcsv))
+
+if __name__ == "__main__":
+    main()
 
