@@ -1,10 +1,12 @@
-# phospho-iLIR
+# phospho_iLIR
 
 ## Overview
 
-`phospho-iLIR` is a set of Python scripts to run the phospho-iLIR pipeline and analyze the results.
+`phospho_iLIR` is a Python package to run the phospho_iLIR pipeline and analyze the results.
 
-The phospho-iLIR pipeline takes in input a list of UniProt IDs and for each ID:
+The phospho_iLIR pipeline has been developed to predict changes in secondary structure propensity that may be induced by phosphorylation in the core of putative LIR motifs or in flanking regions.
+
+The pipeline takes in input a list of UniProt IDs and for each ID:
 
 * gets the corresponding protein sequence from UniProt;
 
@@ -30,26 +32,23 @@ The following Python requirements must also be met:
 
 * `python` v3.7 or higher
 
-Finally, the following Python packages must be installed:
-
-* `dask` and `dask distributed` v2.21.0 or higher
-* `matplotlib` v3.2.1 or higher
-* `pandas` v1.0.3 or higher
-* `PyYAML` v5.3.1 or higher
+All required Python dependencies will be installed together with phospho_iLIR, if not already present.
 
 ## Installation
 
-The scripts require no installation.
+To install phospho_iLIR, just download this folder, unzip it and run the following command from inside the folder:
+
+`python setup.py install`
 
 ## Usage
 
-### phospho-ilir.py
+### phospho-iLIR
 
-This is the script responsible for running the phospho-iLIR pipeline.
+This is the executable responsible for running the phospho-iLIR pipeline.
 
 #### Command line
 
-`phospho-ilir.py [-h] -i IDSFILE -c CONFIGFILE [-d WORKDIR] [-n NPROC]`
+`phospho-iILIR [-h] -i IDSFILE -c CONFIGFILE [-d WORKDIR] [-n NPROC]`
 
 #### Options
 
@@ -69,13 +68,13 @@ A file containig a newline-separated list of UniProt IDs.
 
 ##### Configuration file
 
-A YAML file containing the script configuration (please see the `config.yaml` file in `examples` for an example of configuration file).
+A YAML file containing the script configuration (please see the `config.yaml` file in `config` for an example of configuration file).
 
 #### Outputs
 
 Note: the generation of the outputs for Spider3 and/or PSIPRED depends on whether in the configuration file the option for running them was turned on/off.
 
-Suppose we have a list containing only one UniProt ID named Q0000, and we find two LIRs at positions 10-13 and 20-23 and three phosphorylation sites at position S8, S9 and Y25. In the configuration file, we decided to include as "flanking regions" two residues at each side of the LIR, and to use glutamate as phosphomimetic residue for both serine and tyrosine. The script will generate the following directory tree:
+Suppose we have a list containing only one UniProt ID named Q0000, and we find two LIRs at positions 10-13 and 20-23 and three phosphorylation sites at position S8, S9 and Y25. In the configuration file, we decided to include as "flanking regions" two residues at each side of the LIR, and to use glutamate as phosphomimetic residue for both serine and tyrosine. Running the pipeline will generate the following directory tree:
 
 ```
 Q00000
