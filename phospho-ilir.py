@@ -222,20 +222,23 @@ def get_lirs_ilir(ilirres, \
     # row is a LIR)
     for numrow, row in ildf.iterrows():
         # get the starting and ending point of the LIR
-        # sequence. We need to subtract 1 to "START"
+        # sequence. We need to add 1 to "START"
         # because Python indexes start from 0, but
-        # sequence numbering starts from 1
-        start, end = row["START"]-1, row["END"]
+        # sequence numbering starts from 1, and iLIR
+        # already adds two extra residues to the core LIR
+        # on the left side
+        start, end = row["START"]+1, row["END"]
         # get the LIR sequence from the provided
         # complete sequence
         lirseq = fullseq[start:end]
+        ilirseq = fullseq[start-2:end]
         # make sure it corresponds to the one found
         # by iLIR (it assuments iLIR was run with the
         # complete FASTA sequence)
-        if not lirseq == row["LIR sequence"]:
+        if not ilirseq == row["LIR sequence"]:
             # raise an error
             errstr = f"The LIR found in the sequence provided at " \
-                     f"position {start}-{end} does not correspond " \
+                     f"position {start-2}-{end} does not correspond " \
                      f"to the one found in the iLIR CSV file. " \
                      f"Please check both the complete protein " \
                      f"sequence and the CSV file for inconsistencies."
