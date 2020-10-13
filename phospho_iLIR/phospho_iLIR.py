@@ -69,7 +69,11 @@ def main():
     # load and parse the configuration
     CONFIG = yaml.full_load(open(args.configfile, "r"))
     # top-level working directory
-    WD = args.workdir
+    _wd = args.workdir
+    # if only a directory name was passed, it will be a directory
+    # created inside the current working directory
+    WD = os.path.abspath(_wd) if os.path.basename(_wd) != _wd \
+         else os.path.join(os.getcwd(), _wd)
     # number of processes
     NPROC = args.nproc
     
