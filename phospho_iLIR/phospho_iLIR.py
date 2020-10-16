@@ -10,7 +10,6 @@ import sys
 # dask
 import dask
 import distributed
-from distributed import fire_and_forget
 # others
 import matplotlib.pyplot as plt
 import yaml
@@ -149,6 +148,9 @@ def main():
         # get the UniProt IDs 
         upids = client.submit(util.get_uniprotids, IDSFILE)
 
+        # create a list of orphan futures to be collected at the end
+        futures = []
+
         
         #------------------------ UniProt IDs ------------------------#
 
@@ -207,17 +209,17 @@ def main():
             if SP3RUN:
                 # launch Spider3 and forget about it
                 sp3dir = os.path.join(upiddir, SP3DIR)
-                fire_and_forget(client.submit(partsp3, \
-                                              fasta = fasta, \
-                                              outprefix = upid, \
-                                              wd = sp3dir))
+                futures.append(client.submit(partsp3, \
+                                             fasta = fasta, \
+                                             outprefix = upid, \
+                                             wd = sp3dir))
             
             if PSIRUN:
                 # launch spider3 and forget about it
                 psidir = os.path.join(upiddir, PSIDIR)
-                fire_and_forget(client.submit(partpsi, \
-                                              fasta = fasta, \
-                                              wd = psidir))
+                futures.append(client.submit(partpsi, \
+                                             fasta = fasta, \
+                                             wd = psidir))
 
 
             #------------------------- LIRs --------------------------#
@@ -266,21 +268,21 @@ def main():
                 
                 # write the LIR phosphorylation sites to a CSV file
                 lirpsitescsv = os.path.join(lirdir, lirname + LIRPSITESCSV)
-                fire_and_forget(\
+                futures.append(\
                     client.submit(util.write_lir_phosphosites_csv, \
                                   lirpsites = lirpsites, \
                                   outcsv = lirpsitescsv))
 
                 # write a CSV file with all the variants
                 varcsv = os.path.join(lirdir, lirname + VARCSV)
-                fire_and_forget(\
+                futures.append(\
                     client.submit(util.write_variants_csv, \
                                   variants = variants, \
                                   outcsv = varcsv))
                 
                 # write a Markdown file with all the variants
                 varmd = os.path.join(lirdir, lirname + VARMD)
-                fire_and_forget(\
+                futures.append(\
                     client.submit(util.write_variants_markdown, \
                                   variants = variants, \
                                   outmd = varmd))
@@ -365,13 +367,13 @@ def main():
                     
                     # write a summary CSV file of the Spider3 results
                     outsp3csv = os.path.join(lirdir, lirname + SP3CSV)
-                    fire_and_forget(client.submit(\
-                                    util.write_ss_csv, \
-                                    ssdfs = sp3ssdfs, \
-                                    wtseq = lirseq, \
-                                    start = lirstart, \
-                                    end = lirend, \
-                                    outcsv = outsp3csv))
+                    futures.append(client.submit(\
+                                   util.write_ss_csv, \
+                                   ssdfs = sp3ssdfs, \
+                                   wtseq = lirseq, \
+                                   start = lirstart, \
+                                   end = lirend, \
+                                   outcsv = outsp3csv))
 
                 if PSIRUN:
                     # gather PSIPRED results for all variants
@@ -384,35 +386,38 @@ def main():
                     
                     # write a summary CSV file of the PSIPRED results
                     outpsicsv = os.path.join(lirdir, lirname + PSICSV)
-                    fire_and_forget(client.submit(\
-                                    util.write_ss_csv, \
-                                    ssdfs = psissdfs, \
-                                    wtseq = lirseq, \
-                                    start = lirstart, \
-                                    end = lirend, \
-                                    outcsv = outpsicsv))
+                    futures.append(client.submit(\
+                                   util.write_ss_csv, \
+                                   ssdfs = psissdfs, \
+                                   wtseq = lirseq, \
+                                   start = lirstart, \
+                                   end = lirend, \
+                                   outcsv = outpsicsv))
                     
                     # write a summary HTML file of the PSIPRED results
                     outpsihtml = os.path.join(lirdir, lirname + PSIHTML)
-                    fire_and_forget(client.submit(\
-                                    util.write_psipred_html, \
-                                    psipreddfs = psissdfs, \
-                                    start = lirstart, \
-                                    end = lirend, \
-                                    outhtml = outpsihtml, \
-                                    cmaps = PSIHTMLCMAPS, \
-                                    chunksize = PSIHTMLCHUNKSIZE))
+                    futures.append(client.submit(\
+                                   util.write_psipred_html, \
+                                   psipreddfs = psissdfs, \
+                                   start = lirstart, \
+                                   end = lirend, \
+                                   outhtml = outpsihtml, \
+                                   cmaps = PSIHTMLCMAPS, \
+                                   chunksize = PSIHTMLCHUNKSIZE))
 
                 # gather iLIR results for all variants
                 client.gather(varilfutures)
                 # write the aggregated iLIR results for all variants
                 outilcsv = os.path.join(lirdir, lirname + ILCSV)
-                fire_and_forget(client.submit(\
-                                util.write_ilir_csv, \
-                                ilirres = varilres, \
-                                lirstart = rawlirstart, \
-                                lirend = rawlirend, \
-                                outcsv = outilcsv))
+                futures.append(client.submit(\
+                               util.write_ilir_csv, \
+                               ilirres = varilres, \
+                               lirstart = rawlirstart, \
+                               lirend = rawlirend, \
+                               outcsv = outilcsv))
+
+        # gather all orphan futures still running
+        client.gather(futures)
 
 if __name__ == "__main__":
     main()
