@@ -156,6 +156,13 @@ def main():
 
         
         for upid in upids.result():
+
+            # create dicts for LIR-specific futures for iLIR, Spider3
+            # and PSIPRED so that each time you gather the correct 
+            # ones
+            varilfutures = {}
+            varsp3futures = {}
+            varpsifutures = {}
             
             # create a path for the directory corresponding
             # to the current UniProt ID
@@ -287,14 +294,16 @@ def main():
                                   variants = variants, \
                                   outmd = varmd))
                 
-                # create empty lists to store the results for
-                # all variants (output files and futures)
+                # create empty dictionaries to store the results for
+                # all variants (output files)
                 varilres = {}
                 varsp3res = {}
                 varpsires = {}
-                varilfutures = []
-                varsp3futures = []
-                varpsifutures = []
+
+                # create empty lists to store the futures for each LIR
+                varilfutures[lirname] = []
+                varsp3futures[lirname] = []
+                varpsifutures[lirname] = []
 
                 
                 #--------------------- Variants ----------------------#
@@ -324,7 +333,7 @@ def main():
                     varilhtml = os.path.join(varildir, varname + ILHTML)
                     varilcsv = os.path.join(varildir, varname + ILCSV)
                     varilres[varname] = varilcsv
-                    varilfutures.append(\
+                    varilfutures[lirname].append(\
                         client.submit(partil, \
                                       fasta = varfasta, \
                                       outhtml = varilhtml, \
@@ -336,7 +345,7 @@ def main():
                         varsp3dir = os.path.join(vardir, SP3DIR)
                         varsp3res[varname] = \
                             os.path.join(varsp3dir, varname + ".i1")
-                        varsp3futures.append(\
+                        varsp3futures[lirname].append(\
                             client.submit(partsp3, \
                                           fasta = varfasta, \
                                           outprefix = varname, \
@@ -347,7 +356,7 @@ def main():
                         varpsidir = os.path.join(vardir, PSIDIR)
                         varpsires[varname] = \
                             os.path.join(varpsidir, varname + ".ss2")
-                        varpsifutures.append(\
+                        varpsifutures[lirname].append(\
                             client.submit(partpsi, \
                                           fasta = varfasta, \
                                           wd = varpsidir))
@@ -358,7 +367,7 @@ def main():
 
                 if SP3RUN:
                     # gather Spider3 results for all variants
-                    client.gather(varsp3futures)
+                    client.gather(varsp3futures[lirname])
                     sp3ssdfs = client.submit(\
                                     util.aggregate_ss_results, \
                                     ssres = varsp3res, \
@@ -377,7 +386,7 @@ def main():
 
                 if PSIRUN:
                     # gather PSIPRED results for all variants
-                    client.gather(varpsifutures)
+                    client.gather(varpsifutures[lirname])
                     psissdfs = client.submit(\
                                     util.aggregate_ss_results, \
                                     ssres = varpsires, \
@@ -406,7 +415,7 @@ def main():
                                    chunksize = PSIHTMLCHUNKSIZE))
 
                 # gather iLIR results for all variants
-                client.gather(varilfutures)
+                client.gather(varilfutures[lirname])
                 # write the aggregated iLIR results for all variants
                 outilcsv = os.path.join(lirdir, lirname + ILCSV)
                 futures.append(client.submit(\
