@@ -13,7 +13,7 @@ import distributed
 # others
 import matplotlib.pyplot as plt
 import yaml
-
+# package-specific modules
 from . import util
 
 
@@ -23,6 +23,7 @@ def main():
 
     ######################### ARGUMENT PARSER #########################
 
+    
     # create the parser
     parser = argparse.ArgumentParser()
 
@@ -58,11 +59,13 @@ def main():
 
     ###################### LOGGING CONFIGURATION ######################
     
+    
     logging.basicConfig(level = logging.INFO)
 
 
     ###################### GENERAL CONFIGURATION ######################
  
+    
     # UniProt IDs file
     IDSFILE = args.idsfile
     # load and parse the configuration
@@ -125,6 +128,7 @@ def main():
                                 executable = PSIEXEC)
     partnp = functools.partial(util.run_netphos, \
                                executable = NPEXEC)
+    
     # use the same Python interpreter in use for the processing script
     partnpscript = functools.partial(util.run_process_netphos_output, \
                                      interpreter = sys.executable, \
@@ -136,6 +140,7 @@ def main():
 
     # change scheduler if you want to use threads or a single core
     with dask.config.set(scheduler = "processes"):
+        
         # create a local cluster with the desired number of workers
         cluster = distributed.LocalCluster(n_workers = NPROC, \
                                            silence_logs = "INFO", \
@@ -148,21 +153,16 @@ def main():
         # get the UniProt IDs 
         upids = client.submit(util.get_uniprotids, IDSFILE)
 
-        # create a list of orphan futures to be collected at the end
+        # create a list for orphan futures that need to be collected
+        # before exiting
         futures = []
 
         
         #------------------------ UniProt IDs ------------------------#
 
         
+        # for each UniProt ID
         for upid in upids.result():
-
-            # create dicts for LIR-specific futures for iLIR, Spider3
-            # and PSIPRED so that each time you gather the correct 
-            # ones
-            varilfutures = {}
-            varsp3futures = {}
-            varpsifutures = {}
             
             # create a path for the directory corresponding
             # to the current UniProt ID
@@ -213,16 +213,18 @@ def main():
             psites = client.submit(util.get_phosphosites_netphos, \
                                    netphosres = npcsv)
             
+            # if Spider3 needs to be run
             if SP3RUN:
-                # launch Spider3 and forget about it
+                # launch Spider3
                 sp3dir = os.path.join(upiddir, SP3DIR)
                 futures.append(client.submit(partsp3, \
                                              fasta = fasta, \
                                              outprefix = upid, \
                                              wd = sp3dir))
             
+            # if PSIPRED needs to be run
             if PSIRUN:
-                # launch spider3 and forget about it
+                # launch PSIPRED
                 psidir = os.path.join(upiddir, PSIDIR)
                 futures.append(client.submit(partpsi, \
                                              fasta = fasta, \
@@ -232,6 +234,7 @@ def main():
             #------------------------- LIRs --------------------------#
             
             
+            # for each LIR
             for lir in lirs.result():
 
                 # get the raw LIR attributes
@@ -301,14 +304,15 @@ def main():
                 varpsires = {}
 
                 # create empty lists to store the futures for each LIR
-                varilfutures[lirname] = []
-                varsp3futures[lirname] = []
-                varpsifutures[lirname] = []
+                varilfutures = []
+                varsp3futures = []
+                varpsifutures = []
 
                 
                 #--------------------- Variants ----------------------#
                 
 
+                # for each LIR variant
                 for variant in variants:
                     
                     # get the variant name, sequences, starting
@@ -333,30 +337,32 @@ def main():
                     varilhtml = os.path.join(varildir, varname + ILHTML)
                     varilcsv = os.path.join(varildir, varname + ILCSV)
                     varilres[varname] = varilcsv
-                    varilfutures[lirname].append(\
+                    varilfutures.append(\
                         client.submit(partil, \
                                       fasta = varfasta, \
                                       outhtml = varilhtml, \
                                       outcsv = varilcsv, \
                                       wd = varildir))
 
+                    # if Spider3 needs to be run
                     if SP3RUN:                  
                         # run Spider3
                         varsp3dir = os.path.join(vardir, SP3DIR)
                         varsp3res[varname] = \
                             os.path.join(varsp3dir, varname + ".i1")
-                        varsp3futures[lirname].append(\
+                        varsp3futures.append(\
                             client.submit(partsp3, \
                                           fasta = varfasta, \
                                           outprefix = varname, \
                                           wd = varsp3dir))
 
+                    # if PSIPRED needs to be run
                     if PSIRUN:
                         # run PSIPRED
                         varpsidir = os.path.join(vardir, PSIDIR)
                         varpsires[varname] = \
                             os.path.join(varpsidir, varname + ".ss2")
-                        varpsifutures[lirname].append(\
+                        varpsifutures.append(\
                             client.submit(partpsi, \
                                           fasta = varfasta, \
                                           wd = varpsidir))
@@ -365,9 +371,10 @@ def main():
                 #------------------- Aggregation ---------------------#
        
 
+                # if Spider3 was run
                 if SP3RUN:
                     # gather Spider3 results for all variants
-                    client.gather(varsp3futures[lirname])
+                    client.gather(varsp3futures)
                     sp3ssdfs = client.submit(\
                                     util.aggregate_ss_results, \
                                     ssres = varsp3res, \
@@ -384,9 +391,10 @@ def main():
                                    end = lirend, \
                                    outcsv = outsp3csv))
 
+                # if PSIPRED was run
                 if PSIRUN:
                     # gather PSIPRED results for all variants
-                    client.gather(varpsifutures[lirname])
+                    client.gather(varpsifutures)
                     psissdfs = client.submit(\
                                     util.aggregate_ss_results, \
                                     ssres = varpsires, \
@@ -415,8 +423,8 @@ def main():
                                    chunksize = PSIHTMLCHUNKSIZE))
 
                 # gather iLIR results for all variants
-                client.gather(varilfutures[lirname])
-                # write the aggregated iLIR results for all variants
+                client.gather(varilfutures)
+                # write a summary CSV file of the iLIR results
                 outilcsv = os.path.join(lirdir, lirname + ILCSV)
                 futures.append(client.submit(\
                                util.write_ilir_csv, \
@@ -430,4 +438,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

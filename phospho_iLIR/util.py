@@ -593,8 +593,13 @@ def write_ilir_csv(ilirres, \
     # reset the distributed.worker logger
     logger = reset_worker_logger()
 
+    # representation of missing values
+    NAREP = "NA"
+    # CSV file field separator
+    SEP = ","
+
     # create an empty dictionary to store the processed
-    # iLIR results
+    # iLIR results.
     dfdict = {}
     # for each (variant name, result) pair in the dictionary
     # collecting iLIR results for all variants
@@ -605,10 +610,12 @@ def write_ilir_csv(ilirres, \
         # row is a LIR)
         for numrow, row in ildf.iterrows():
             # get the starting and ending point of the LIR
-            # sequence. We need to subtract 1 to "START"
-            # because indexes start from 0, but sequence
-            # numbering starts from 1
-            start, end = row["START"]-1, row["END"]
+            # sequence. We need to add 1 to "START"
+            # because Python indexes start from 0, but
+            # sequence numbering starts from 1, and iLIR
+            # already adds two extra residues to the core LIR
+            # on the left side
+            start, end = row["START"]+1, row["END"]
             # if the current LIR starts at the same position
             # at the LIR of interest and also ends at the same
             # position (it IS the LIR of interest)
@@ -617,14 +624,22 @@ def write_ilir_csv(ilirres, \
                 dfdict[varname] = row
                 # stop parsing the current iLIR result
                 # since we have already found the LIR
-                break  
+                break
+        # if the LIR of interest was not found in the iLIR
+        # results for the current variant
+        if not varname in dfdict.keys():
+            # create a row filled with NA values
+            emptyrow = [NAREP]*len(row)
+            # add a NA-only series to the dictionary
+            dfdict[varname] = pd.Series(emptyrow)
+    
     # create a new dataframe built from the dictionary
     # (will have the same columns as the iLIR output, but
     # rows will be named after the variant corresponding
     # to each iLIR result)
     df = pd.DataFrame.from_dict(dfdict, orient = "index")
     # save the dataframe to a CSV file
-    df.to_csv(outcsv, sep = ",", na_rep = "NA")
+    df.to_csv(outcsv, sep = SEP, na_rep = NAREP)
 
 
 def write_ss_csv(ssdfs, \
