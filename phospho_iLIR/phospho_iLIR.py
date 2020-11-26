@@ -1,19 +1,49 @@
 #!/usr/bin/env python
 # -*- Mode: python; tab-width: 4; indent-tabs-mode:nil; coding:utf-8 -*-
 
+#    phospho_iLIR.py
+#
+#    Run the phospho-iLIR pipeline to generate all possible
+#    phosphomimetic variants of a LIR motif and predict changes
+#    in the secondary structure possibly due to phosphorylation
+#    events.
+#
+#    Copyright (C) 2020 Valentina Sora 
+#                       <sora.valentina1@gmail.com>
+#                       Matteo Tiberti 
+#                       <matteo.tiberti@gmail.com> 
+#                       Elena Papaleo
+#                       <elenap@cancer.dk>
+#
+#    This program is free software: you can redistribute it and/or
+#    modify it under the terms of the GNU General Public License as
+#    published by the Free Software Foundation, either version 3 of
+#    the License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public
+#    License along with this program. 
+#    If not, see <http://www.gnu.org/licenses/>.
+
+
+
 # standard library
 import argparse
 import functools
 import logging
 import os
+from pkg_resources import resource_filename, Requirement
 import sys
-# dask
+# third-party packages
 import dask
 import distributed
-# others
 import matplotlib.pyplot as plt
 import yaml
-# package-specific modules
+# phospho-iLIR
 from . import util
 
 
@@ -97,7 +127,9 @@ def main():
     # NetPhos
     NPCONFIG = CONFIG["netphos"]
     NPEXEC = NPCONFIG["executable"]
-    NPSCRIPT = NPCONFIG["procscript"]
+    NPSCRIPT = resource_filename(\
+                    Requirement("phospho_iLIR"), \
+                    "phospho_iLIR/process_netphos_output.py")
     NPDIR = NPCONFIG["dirname"]
     NPDAT = NPCONFIG["rawoutsuffix"] + ".dat"
     NPCSV = NPCONFIG["procoutsuffix"] + ".csv"
@@ -297,16 +329,35 @@ def main():
                                   variants = variants, \
                                   outmd = varmd))
                 
-                # create empty dictionaries to store the results for
-                # all variants (output files)
-                varilres = {}
-                varsp3res = {}
-                varpsires = {}
+                # create dictionaries to store the results for
+                # all variants (output files) and empty lists to
+                # store the futures for each LIR
 
-                # create empty lists to store the futures for each LIR
+                varilres = \
+                    {"start" : lirstart, \
+                     "end" : lirend, \
+                     "results" : {upid : ilcsv}}
                 varilfutures = []
-                varsp3futures = []
-                varpsifutures = []
+
+                # if Spider3 needs to be run
+                if SP3RUN:
+                    varsp3res = \
+                        {"start" : lirstart, \
+                         "end" : lirend, \
+                         "results": \
+                            {upid : \
+                                os.path.join(sp3dir, upid + ".i1")}}
+                    varsp3futures = []
+
+                # if PSIPRED needs to be run
+                if PSIRUN:
+                    varpsires = \
+                        {"start" : lirstart, \
+                         "end" : lirend, \
+                         "results": \
+                            {upid : \
+                                os.path.join(psidir, upid + ".ss2")}}
+                    varpsifutures = []
 
                 
                 #--------------------- Variants ----------------------#
@@ -336,7 +387,7 @@ def main():
                     varildir = os.path.join(vardir, ILDIR)
                     varilhtml = os.path.join(varildir, varname + ILHTML)
                     varilcsv = os.path.join(varildir, varname + ILCSV)
-                    varilres[varname] = varilcsv
+                    varilres["results"][varname] = varilcsv
                     varilfutures.append(\
                         client.submit(partil, \
                                       fasta = varfasta, \
@@ -348,7 +399,7 @@ def main():
                     if SP3RUN:                  
                         # run Spider3
                         varsp3dir = os.path.join(vardir, SP3DIR)
-                        varsp3res[varname] = \
+                        varsp3res["results"][varname] = \
                             os.path.join(varsp3dir, varname + ".i1")
                         varsp3futures.append(\
                             client.submit(partsp3, \
@@ -360,7 +411,7 @@ def main():
                     if PSIRUN:
                         # run PSIPRED
                         varpsidir = os.path.join(vardir, PSIDIR)
-                        varpsires[varname] = \
+                        varpsires["results"][varname] = \
                             os.path.join(varpsidir, varname + ".ss2")
                         varpsifutures.append(\
                             client.submit(partpsi, \
@@ -377,6 +428,7 @@ def main():
                     client.gather(varsp3futures)
                     sp3ssdfs = client.submit(\
                                     util.aggregate_ss_results, \
+                                    upid = upid, \
                                     ssres = varsp3res, \
                                     source = "spider3", \
                                     groupby = "variant")
@@ -397,6 +449,7 @@ def main():
                     client.gather(varpsifutures)
                     psissdfs = client.submit(\
                                     util.aggregate_ss_results, \
+                                    upid = upid, \
                                     ssres = varpsires, \
                                     source = "psipred", \
                                     groupby = "variant")
