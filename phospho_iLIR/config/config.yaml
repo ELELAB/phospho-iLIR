@@ -7,7 +7,7 @@ lirs:
   # number of flanking residues to be considered on the right of the LIR
   rcontext: 8
 
-  # configuration affecting the variants
+  # configuration affecting the LIR variants
   variants:
     # suffix of the file names(s) containing all variants
     outsuffix: -variants
@@ -34,8 +34,6 @@ ilir:
 netphos:
   # path to the NetPhos executable
   executable: netphos
-  # path to the Python script used for processing the NetPhos output
-  procscript: /data/user/valentina/test_phosphoilir/github_version/process_netphos_output.py
   # name of the directory that will contain the NetPhos results
   dirname: netphos
   # suffix to be used for raw output files
@@ -60,8 +58,8 @@ spider3:
 
 # PSIPRED configuration
 psipred:
-  # whether to run PSIPRED form the wild-type protein and all variants
-  run: False
+  # whether to run PSIPRED for the wild-type protein and all variants
+  run: True
   # path to the PSIPRED executable
   executable: /usr/local/psipred/runpsipred
   # name of the directory that will contain all PSIPRED results 
@@ -74,10 +72,9 @@ psipred:
     outsuffix: -psipred
     # color maps to be used to show the propensities for the
     # different secondary structures in the HTML aggregation file 
-    # (Coils, Helix, Strand)
+    # (Coil, Helix, Strand)
     cmaps: Blues, Greens, Oranges
     # length of each chunk of residues to be shown on each line
     # in the HTML aggregation file (especially useful for really
     # long protein sequences)
     chunksize: 20
-
