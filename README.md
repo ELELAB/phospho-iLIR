@@ -48,7 +48,7 @@ This is the executable responsible for running the phospho-iLIR pipeline.
 
 #### Command line
 
-`phospho-iILIR [-h] -i IDSFILE -c CONFIGFILE [-d WORKDIR] [-n NPROC]`
+`phospho_iILIR [-h] -i IDSFILE -c CONFIGFILE [-d WORKDIR] [-n NPROC]`
 
 #### Options
 
