@@ -6,7 +6,7 @@
 # Configuration affecting the single LIRs
 lirs:
   
-  # Cuffix of the file name(s) containing the phosphorylation
+  # Suffix of the file name(s) containing the phosphorylation
   # sites in the LIR
   out_p_sites_suffix: -phosphosites
   
