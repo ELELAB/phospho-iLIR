@@ -38,7 +38,7 @@ from distributed.utils import DequeHandler
 # To address a bug that resets the distributed.worker
 # logger to WARNING level when a task is launched on
 # the worker, no matter what the configuration was
-def reset_worker_logger():
+def reset_worker_logger(log_file = None):
     """Utility function to reset a Dask logger handlers
     and level to desired values.
     """
@@ -48,24 +48,34 @@ def reset_worker_logger():
     
     # Get the logger
     logger = logging.getLogger("distributed.worker")
-    
+
     # Define the handlers to keep
-    htokeep = [h for h in logger.handlers if type(h).__name__ == \
-               DequeHandler.__name__]
-    
+    h_to_keep = \
+        [h for h in logger.handlers if type(h).__name__ == \
+         DequeHandler.__name__]
+
+    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+
     # Remove all the handlers from the logger
     for h in logger.handlers:
         logger.removeHandler(h)
     
     # For each of the handlers to keep
-    for h in htokeep:
+    for h in h_to_keep:
         
         # Set the new level for the handler
         h.setLevel(NEWLEVEL)
-        
+        h.setFormatter(formatter)
         # Add the handler to the logger
         logger.addHandler(h)
-    
+
+    if log_file:
+
+        handler = logging.FileHandler(log_file, mode = "a")
+        handler.setLevel(NEWLEVEL)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
     # Reset the logger level to the new level
     logger.setLevel(NEWLEVEL)
     

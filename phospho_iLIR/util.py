@@ -50,7 +50,9 @@ from .defaults import (
     ILIR_CSV_COLS,
     ILIR_SERVERS,
     PSI_OUT_SUFFIX,
-    SP3_OUT_SUFFIX)
+    SP3_OUT_SUFFIX,
+    UNIPROT_FASTA_URL,
+    )
 
 
 
@@ -58,44 +60,12 @@ from .defaults import (
 
 
 
-# Giving subprocess.DEVNULL to stdout 
-# raises OSError(9, "Bad file descriptor")
-def run_psipred(executable,
-                fasta,
-                out_prefix,
-                wd,
-                stdout = None):
-    """Run PSIPRED.
-    """
-
-    # Reset the distributed.worker logger
-    logger = reset_worker_logger()
-    
-    # Make sure that the specified directory exists.
-    # If not, create it.
-    os.makedirs(wd, exist_ok = True)
-    
-    # Set the command
-    args = [executable, fasta]
-    
-    # Start the process
-    p = subprocess.Popen(args,
-                         cwd = wd,
-                         stdout = stdout)
-    
-    # Wait for the process to complete
-    p.wait()
-
-    # Return the output file
-    return os.path.join(wd, out_prefix + PSI_OUT_SUFFIX)
-
-
-
 def run_ilir(server,
              fasta,
              out_html,
              out_csv,
-             wd):
+             wd,
+             log_prefix = ""):
     """Run iLIR. The code has been adapted from
     the iLIR standalone tool developed by Matteo
     Tiberti <matteo.tiberti@gmail.com>.
@@ -106,8 +76,23 @@ def run_ilir(server,
 
     # Make sure that the specified directory exists.
     # If not, create it.
-    os.makedirs(wd,
-                exist_ok = True)
+    os.makedirs(wd, exist_ok = True)
+
+    # If the output files have already been produced
+    if os.path.exists(out_html) and os.path.exists(out_csv):
+
+        # Inform the user that iLIR will not be run again
+        warnstr = \
+            f"{log_prefix}:The iLIR output files {out_html} " \
+            f"and {out_csv} have been found. iLIR will " \
+            f"not be run again."
+        logger.warning(warnstr)
+
+        # Return the output CSV file
+        return out_csv
+
+    # Get the text from the FASTA file
+    fasta = open(fasta, "r").read()
 
     # Try to send the request to iLIR
     response = \
@@ -117,14 +102,34 @@ def run_ilir(server,
     # If something went wrong
     if not response.ok:
 
-        # Raise the corresponding exception
-        response.raise_for_status()
+        # Warn the user
+        errstr = \
+            f"{log_prefix}:Something went wrong when trying to " \
+            f"get the iLIR results from " \
+            f"{ILIR_SERVERS[server]['url']}. Status code: " \
+            f"{response.status_code}."
+        logger.error(errstr)
+
+        # Return an empty string
+        return ""
+
+    # Inform the user that everything went fine
+    infostr = \
+        f"{log_prefix}:The iLIR results have been successfully " \
+        f"retrieved from {ILIR_SERVERS[server]['url']}."
+    logger.info(infostr)
 
     # Open the output HTML file
     with open(out_html, "w") as oh:
 
         # Save the results
         oh.write(response.text)
+
+        # Inform the user that the HTML file has been written
+        infostr = \
+            f"{log_prefix}:The raw iLIR results have ben written " \
+            f"to {out_html}."
+        logger.info(infostr)
 
     # Try to read in the results as a data frame
     try:
@@ -141,11 +146,22 @@ def run_ilir(server,
     # If something went wrong
     except Exception as e:
 
-        # Raise an exception
+        # Inform the user
         errstr = \
-            f"Could not parse the output file from iLIR. An error " \
-            f"may have occurred in the iLIR server: {e}"
-        raise Exception(errstr)
+            f"{log_prefix}:Could not parse the results from iLIR. " \
+            f"An error may have occurred in the iLIR server " \
+            f"{server}: {e}"
+        logger.error(errstr)
+
+        # Return an empty string
+        return ""
+
+    # Inform the user that the output file from iLIR has been
+    # successfully parsed
+    infostr = \
+        f"{log_prefix}:The results from iLIR (server: {server}) " \
+        f"have been successfully parsed."
+    logger.info(infostr)
 
     # Drop all NA values
     df = df.dropna(how = "all")
@@ -208,6 +224,12 @@ def run_ilir(server,
     # Save the data frame to the output CSV file
     df.to_csv(out_csv)
 
+    # Inform the user
+    infostr = \
+        f"{log_prefix}:iLIR results successfully written to " \
+        f"{out_csv}."
+    logger.info(infostr)
+
     # Return the output CSV file
     return out_csv
 
@@ -215,7 +237,8 @@ def run_ilir(server,
 def run_netphos(executable,
                 fasta,
                 wd,
-                out_dat):
+                out_dat,
+                log_prefix = ""):
     """Run NetPhos 3.1.
     """
 
@@ -225,9 +248,27 @@ def run_netphos(executable,
     # Make sure that the specified directory exists.
     # If not, create it. 
     os.makedirs(wd, exist_ok = True)
+
+    # If the output file has already been produced
+    if os.path.exists(out_dat):
+
+        # Inform the user that NetPhos will not be run again
+        warnstr = \
+            f"{log_prefix}:The NetPhos output file {out_dat} " \
+            f"has been found. NetPhos will not be run again."
+        logger.warning(warnstr)
+
+        # Return the output file
+        return out_dat
     
     # Set the command
     args = [executable, fasta]
+
+    # Inform the user that the process has started
+    infostr = \
+        f"Running NetPhos on {fasta}. The output will be " \
+        f"written to {out_dat}."
+    logger.info(infostr)
     
     # Start the process
     p = subprocess.Popen(args,
@@ -237,6 +278,26 @@ def run_netphos(executable,
     # Wait for the process to complete
     p.wait()
 
+    # If everything went fine
+    if p.returncode == 0:
+
+        # Inform the user
+        infostr = \
+            f"NetPhos ran successfully on {fasta}."
+        logger.info(infostr)
+
+    # Otherwise
+    else:
+
+        # Warn the user
+        errstr = \
+            f"Something went wrong when running NetPhos " \
+            f"on {fasta}."
+        logger.error(infostr)
+
+        # Return an empty string
+        return ""
+
     # Return the output file
     return out_dat
 
@@ -245,7 +306,8 @@ def run_spider3(executable,
                 fasta,
                 out_prefix,
                 wd,
-                stdout = subprocess.DEVNULL):
+                stdout = subprocess.DEVNULL,
+                log_prefix = ""):
     """Run Spider3.
     """
     
@@ -255,6 +317,21 @@ def run_spider3(executable,
     # Make sure that the specified directory exists.
     # If not, create it.  
     os.makedirs(wd, exist_ok = True)
+
+    # Get the output file
+    out_file = os.path.join(wd, out_prefix + SP3_OUT_SUFFIX)
+
+    # If the output file has already been produced
+    if os.path.exists(out_file):
+
+        # Inform the user that Spider3 will not be run again
+        warnstr = \
+            f"{log_prefix}:The Spider3 output file {out_file} " \
+            f"has been found. Spider3 will not be run again."
+        logger.warning(warnstr)
+
+        # Return the output file
+        return out_file
     
     # Set the command
     args = [executable, out_prefix, fasta]
@@ -267,8 +344,102 @@ def run_spider3(executable,
     # Wait for the process to complete
     p.wait()
 
+    # If everything went fine
+    if p.returncode == 0:
+
+        # Inform the user
+        infostr = \
+            f"{log_prefix}:Spider3 ran successfully on {fasta}."
+        logger.info(infostr)
+
+    # Otherwise
+    else:
+
+        # Warn the user
+        errstr = \
+            f"{log_prefix}:Something went wrong when running " \
+            f"Spider3 on {fasta}."
+        logger.error(infostr)
+
+        # Return an empty string
+        return ""
+
     # Return the output file
-    return os.path.join(wd, out_prefix + SP3_OUT_SUFFIX)
+    return out_file
+
+
+def run_psipred(executable,
+                fasta,
+                out_prefix,
+                wd,
+                stdout = subprocess.DEVNULL,
+                stderr = subprocess.DEVNULL,
+                log_prefix = ""):
+    """Run PSIPRED.
+    """
+
+    # Reset the distributed.worker logger
+    logger = reset_worker_logger()
+    
+    # Make sure that the specified directory exists.
+    # If not, create it.
+    os.makedirs(wd, exist_ok = True)
+    
+    # Set the command
+    args = [executable, fasta]
+
+    # Get the output file
+    out_file = os.path.join(wd, out_prefix + PSI_OUT_SUFFIX)
+
+    # If the output file has already been produced
+    if os.path.exists(out_file):
+
+        # Inform the user that PSIPRED will not be run again
+        warnstr = \
+            f"{log_prefix}:The PSIPRED output file {out_file} " \
+            f"has been found. PSIPRED will not be run again."
+        logger.warning(warnstr)
+
+        # Return the output file
+        return out_file
+
+    # Inform the user that the process is about to be run
+    infostr = \
+        f"{log_prefix}:Running PSIPRED on {fasta}. The results " \
+        f"will be written to {out_file}."
+    logger.info(infostr)
+
+    # Start the process
+    p = subprocess.Popen(args,
+                         cwd = wd,
+                         stdout = stdout,
+                         stderr = stderr)
+    
+    # Wait for the process to complete
+    p.wait()
+
+    # If everything went fine
+    if p.returncode == 0:
+
+        # Inform the user
+        infostr = \
+            f"{log_prefix}:PSIPRED ran successfully on {fasta}."
+        logger.info(infostr)
+
+    # Otherwise
+    else:
+
+        # Warn the user
+        errstr = \
+            f"{log_prefix}:Something went wrong when running " \
+            f"PSIPRED on {fasta}."
+        logger.error(infostr)
+
+        # Return an empty string
+        return ""
+
+    # Return the output file
+    return out_file
 
 
 def run_process_netphos_output(interpreter,
@@ -276,7 +447,8 @@ def run_process_netphos_output(interpreter,
                                np_out,
                                out_csv,
                                wd,
-                               stdout = subprocess.DEVNULL):
+                               stdout = subprocess.DEVNULL,
+                               log_prefix = ""):
     """Process the output obtained from NetPhos 3.1.
     """
 
@@ -286,6 +458,18 @@ def run_process_netphos_output(interpreter,
     # Make sure that the specified directory exists.
     # If not, create it.
     os.makedirs(wd, exist_ok = True)
+
+    # If the output file has already been produced
+    if os.path.exists(out_csv):
+
+        # Inform the user that the script will not be run again
+        warnstr = \
+            f"{log_prefix}:The {script} output file {out_csv} " \
+            f"has been found. {script} will not be run again."
+        logger.warning(warnstr)
+
+        # Return the output file
+        return out_csv
     
     # Set the command
     args = [interpreter, script, "-f", np_out, "-o", out_csv]
@@ -297,6 +481,26 @@ def run_process_netphos_output(interpreter,
     
     # Wait for the process to complete
     p.wait()
+
+    # If everything went fine
+    if p.returncode == 0:
+
+        # Inform the user
+        infostr = \
+            f"{log_prefix}:{script} ran successfully on {np_out}."
+        logger.info(infostr)
+
+    # Otherwise
+    else:
+
+        # Warn the user
+        errstr = \
+            f"{log_prefix}:Something went wrong when running " \
+            f"{script} on {np_out}."
+        logger.error(infostr)
+
+        # Return an empty string
+        return ""
 
     # Return the output file
     return out_csv
@@ -310,21 +514,22 @@ def run_process_netphos_output(interpreter,
 def get_uniprot_ids(uniprot_ids_file):
     """Read a list of newline-separated UniProt IDs from a file.
     """
-    
-    # Reset the distributed.worker logger
-    logger = reset_worker_logger()
 
     # Parse the file and return the list
     with open(uniprot_ids_file, "r") as f:
         return [l.strip("\n") for l in f if not re.match(r"^\s*$", l)]
 
 
-def get_sequence_from_fasta(fasta_path):
+def get_sequence_from_fasta(fasta_path,
+                            log_prefix = ""):
     """Get a protein sequence from a FASTA file.
     """
     
     # Reset the distributed.worker logger
     logger = reset_worker_logger()
+
+    # Initialize the sequence to an empty string
+    sequence = ""
     
     # Open the FASTA file
     with open(fasta_path, "r") as f:
@@ -338,11 +543,22 @@ def get_sequence_from_fasta(fasta_path):
             
             # If there are multiple sequences in the file,
             # only the first one will be returned
-            return l.rstrip("\n")
+            sequence = l.rstrip("\n")
+            break
+
+    # Inform the user that the sequence retrieval was
+    # successful
+    infostr = \
+        f"Sequence successfully retrieved from {fasta_path}."
+    logger.info(infostr)
+
+    # Return the sequence
+    return sequence
 
 
 def get_lirs_ilir(ilir_res,
-                  full_seq):
+                  full_seq,
+                  log_prefix = ""):
     """Parse the results from iLIR and return the list of LIRs
     found.
     """
@@ -353,17 +569,38 @@ def get_lirs_ilir(ilir_res,
     # Reset the distributed.worker logger
     logger = reset_worker_logger()
 
-    # Read the data frame containing the iLIR results
-    il_df = pd.read_csv(ilir_res,
-                        sep = ",",
-                        index_col = 0)
+    # Try to read the data frame containing the iLIR results
+    try:
+
+        il_df = pd.read_csv(ilir_res,
+                            sep = ",",
+                            index_col = 0)
+
+    # If something went wrong
+    except Exception as e:
+
+        # Warn the user
+        errstr = \
+            f"{log_prefix}:Could not load the iLIR results " \
+            f"from {ilir_res}."
+        logger.error(errstr)
+
+        # Return an empty list
+        return []
+
+    # Inform the user that the iLIR results have been
+    # successfully loaded
+    infostr = \
+        f"The iLIR results have been successfully loaded " \
+        f"from {ilir_res}."
+    logger.info(infostr)
     
     # Create an empty list to store the LIRs found
     lirs = []
     
     # Iterate over the rows of the data frame (each
     # row is a LIR)
-    for numrow, row in ildf.iterrows():
+    for numrow, row in il_df.iterrows():
         
         # Get the starting and ending point of the LIR
         # sequence. We need to add 1 to "START"
@@ -383,24 +620,36 @@ def get_lirs_ilir(ilir_res,
         # complete FASTA sequence)
         if not ilir_seq == row["LIR sequence"]:
             
-            # Raise an error
+            # Warn the user
             errstr = \
-                f"The LIR found in the sequence provided at " \
-                f"position {start-2}-{end} does not correspond " \
-                f"to the one found in the iLIR results. " \
+                f"{log_prefix}:The LIR found at position " \
+                f"{start-2}-{end} in the sequence does not " \
+                f"correspond to the one found in the iLIR results. " \
                 f"Please check both the complete protein " \
-                f"sequence and the CSV file for inconsistencies."
-            raise ValueError(errstr)
+                f"sequence and the iLIR output CSV file " \
+                f"for inconsistencies."
+            logger.error(errstr)
+            
+            # Return an empty list
+            return []
         
         # Append the LIR sequence and its starting
         # and ending points to the list of LIRs
         lirs.append((lir_seq, start, end))
+
+    # Inform the user that the LIRs have been successfully
+    # parsed
+    infostr = \
+        f"{log_prefix}:The LIR motifs have been successfully " \
+        f"retrieved from the iLIR results."
+    logger.info(infostr)
     
     # Return the list of LIRs
     return lirs
 
 
-def get_phosphosites_netphos(netphos_res):
+def get_phosphosites_netphos(netphos_res,
+                             log_prefix = ""):
     """Parse the results from NetPhos 3.1 and
     return a set of sequence positions predicted
     to be phosphorylation sites.
@@ -412,9 +661,23 @@ def get_phosphosites_netphos(netphos_res):
     # Reset the distributed.worker logger
     logger = reset_worker_logger()
     
-    # Read the NetPhos results as a data frame
-    np_df = pd.read_csv(netphos_res,
-                        sep = ",")
+    # Try to read the NetPhos results as a data frame
+    try:
+
+        np_df = pd.read_csv(netphos_res,
+                            sep = ",")
+
+    # If something went wrong
+    except Exception as e:
+
+        # Warn the user
+        errstr = \
+            f"{log_prefix}:Could not parse the NetPhos " \
+            f"results from {netphos_res}. Exception: {e}"
+        logger.error(errstr)
+
+        # Return an empty set
+        return set()
     
     # Get the phosphorylation sites, use sets because
     # lookup is faster and we do not need them in
@@ -425,7 +688,8 @@ def get_phosphosites_netphos(netphos_res):
 def get_extended_lir(lir,
                      full_seq,
                      l_context,
-                     r_context):
+                     r_context,
+                     log_prefix = ""):
     """Include a variable length residue context
     into the original LIR sequence.
     """
@@ -481,10 +745,11 @@ def get_extended_lir(lir,
     # Log information about the extended LIR sequence
     # (to check that it was built correctly)
     logger.info(\
-        f"Original LIR sequence is {start}-{seq}-{end-1}")
+        f"{log_prefix}:The original LIR sequence is " \
+        f"{start}-{seq}-{end-1}.")
     logger.info(\
-        f"Extended LIR sequence is " \
-        f"{ext_start_uniprot}-{ext_seq}-{ext_end_uniprot}")
+        f"{log_prefix}:The extended LIR sequence is " \
+        f"{ext_start_uniprot}-{ext_seq}-{ext_end_uniprot}.")
     
     # Set the extended LIR name
     ext_name = f"lir_{ext_start_uniprot}_{ext_end_uniprot}"
@@ -494,7 +759,8 @@ def get_extended_lir(lir,
 
 
 def get_lir_phosphosites(lir,
-                         p_sites):
+                         p_sites,
+                         log_prefix = ""):
     """Get the phosphorylation sites found in a LIR,
     given the LIR and a set of possible phosphosites.
     """
@@ -510,27 +776,35 @@ def get_lir_phosphosites(lir,
     
     # Get the sequence range of the LIR
     seq_range = range(start, end)
-    
-    # Get the LIR phosphorylation sites looking up
-    # the set of phosphorylation sites provided
-    lir_p_sites = \
-        [(i, ps, res) for i, (ps, res) in \
-         enumerate(zip(seq_range, seq)) \
-         if ps+1 in set(p_sites)]
-    
+
     # If no phosphorylation sites were found in the LIR
-    if not lir_p_sites:
-        logger.info(\
-            "No phosphorylation sites found in " \
-            "the extendend LIR sequence.")
+    if not p_sites:
+
+        # Inform the user
+        infostr = \
+            f"{log_prefix}:No phosphorylation sites found in " \
+            f"the extended LIR sequence {start+1}-{seq}-{end}."
+        logger.info(infostr)
+
+        # Return an empty list of phosphorylation sites
+        # for the LIR
+        return []
     
     # Otherwise
     else:
+
+        # Get the LIR phosphorylation sites looking up
+        # the set of phosphorylation sites provided
+        lir_p_sites = \
+            [(i, ps, res) for i, (ps, res) in \
+             enumerate(zip(seq_range, seq)) \
+             if ps+1 in set(p_sites)]
         
         # Log information about the phosphorylation sites
-        logger.info(\
-            f"Found {len(lir_p_sites)} phosphorylation " \
-            f"sites in {start+1}-{seq}-{end}.")
+        infostr = \
+            f"{log_prefix}:{len(lir_p_sites)} phosphorylation " \
+            f"sites found in {start+1}-{seq}-{end}."
+        logger.info(infostr)
         
         # Real absolute position of a phosphosites is shifted by 1, 
         # since Python indexing starts from 0 but sequence numbering
@@ -538,7 +812,8 @@ def get_lir_phosphosites(lir,
         logstr = ", ".join(\
             [f"{ap+1} ({rt})" for rp, ap, rt in lir_p_sites])
         logger.info(\
-            f"Phosphorylation sites found at positions: {logstr}.")
+            f"{log_prefix}:Phosphorylation sites found at " \
+            f"positions: {logstr}.")
     
     # Return the list of phosphorylation sites
     return lir_p_sites
@@ -548,7 +823,8 @@ def get_variants(up_id,
                  lir,
                  full_seq,
                  lir_p_sites,
-                 pres2pmim):
+                 pres2pmim,
+                 log_prefix = ""):
     """Get all combinations of the phosphomimetic variants of
     the protein given a LIR possible phosphorylation sites.
     """
@@ -567,9 +843,9 @@ def get_variants(up_id,
 
         # Inform the user
         infostr = \
-            f"Since no phosphorylation sites were found in " \
-            f"{start+1}-{seq}-{end}, no variants will be " \
-            f"generated for this LIR."
+            f"{log_prefix}:Since no phosphorylation sites were " \
+            f"found in {start+1}-{seq}-{end}, no variants " \
+            f"will be generated for this LIR."
         logger.info(infostr)
 
         # Return an empty list
@@ -625,7 +901,8 @@ def get_variants(up_id,
 
             # Add it to the list and continue
             variants.append(\
-                [(up_id, seq, full_seq, start, end, [], [])])
+                (up_id, seq, full_seq, start, end, [], []))
+            continue
         
         # Create an empty lists to store the list of mutations
         # (e.g. ["S3E", "T4E"]) and positions (e.g. ["3", "4"])
@@ -646,7 +923,7 @@ def get_variants(up_id,
                 positions.append(rel2num[i])
 
         # Generate the variant name
-        varname = f"var_{'_'.join(mutations)}"
+        var_name = f"var_{'_'.join(mutations)}"
         
         # Update the list of variants
         variants.append((var_name, var_seq, var_full_seq, start,
@@ -657,7 +934,8 @@ def get_variants(up_id,
     for var_n, var, var_full, start, end, muts, pos in variants[1:]:
         r_just = max_l_name+5 - len(var_n)
         logger.info(\
-            f"Variant {var_n}: {start+1:>{r_just}}-{var}-{end}")
+            f"{log_prefix}:Variant {var_n}: " \
+            f"{start+1:>{r_just}}-{var}-{end}")
     
     # Return the list of variants, including the wild-type
     return variants
@@ -673,12 +951,11 @@ def aggregate_ss_results(up_id,
     # Reset the distributed.worker logger
     logger = reset_worker_logger()
 
-    # Get start and end positions of the LIR in
-    # the full sequence
-    start, end = ss_res["start"], ss_res["end"]
-
+    # Get the log prefix
+    log_prefix = kwargs["log_prefix"]
+    
     # If the results come from PSIPRED
-    if source == "psipred":
+    if source == "PSIPRED":
 
         # PSIPRED .ss2 file columns names
         cols = ["Seq", "SS", "Coil", "Helix", "Strand"]
@@ -690,7 +967,7 @@ def aggregate_ss_results(up_id,
         sep = r"\s+"
     
     # If the results come from Spider3
-    elif source == "spider3":
+    elif source == "Spider3":
 
         # spider3 .i1 file columns names
         cols = ["SS", "SS8", "ASA", "Phi", "Psi", "Theta",
@@ -709,13 +986,34 @@ def aggregate_ss_results(up_id,
     # for the variants
     ss_res = \
         {k : v for k, v in kwargs.items() \
-         if k not in ("up_id", "source", "groupby")}
+         if k not in ("up_id", "source", "groupby", "log_prefix")}
+
+    # Get start and end positions of the LIR in
+    # the full sequence
+    start, end = ss_res[up_id]["start"], ss_res[up_id]["end"]
     
     # For each variant name and corresponding result
     for var_name, res in ss_res.items():
+
+        # Get the output file containing the results
+        results = res["results"]
+
+        # If the file does not exist
+        if not os.path.exists(results):
+
+            # Warn the user and ignore the file
+            errstr = \
+                f"{log_prefix}:Could not find the file " \
+                f"{results} for the variant {var_name}. " \
+                f"Therefore, the variant will be excluded " \
+                f"from the aggregation of the {source} results."
+            logger.error(errstr)
+
+            # Continue to the next variant
+            continue
         
         # Read the results as a data frame
-        raw_df = pd.read_csv(res,
+        raw_df = pd.read_csv(res["results"],
                              sep = sep,
                              names = cols,
                              comment = comment)
@@ -723,9 +1021,6 @@ def aggregate_ss_results(up_id,
         # The data frame name will be the variant name
         raw_df.name = var_name
 
-        # Store the data frame in the dictionary
-        raw_dfs[var_name] = raw_df
-        
         # If the results are that of the wild-type
         # full sequence
         if var_name == up_id:
@@ -733,12 +1028,15 @@ def aggregate_ss_results(up_id,
             # Get only the rows corresponding to
             # the LIR results
             raw_df = raw_df[start-1:end]
+
+        # Store the data frame in the dictionary
+        raw_dfs[var_name] = raw_df
     
     # If the results should be grouped by variant
     if groupby == "variant":
         
-        # Return the raw data frames
-        return raw_dfs
+        # The final data frames will be the raw data frames
+        dfs = raw_dfs
     
     # If the results should be grouped by secondary structure
     elif groupby == "secstruc":
@@ -758,9 +1056,16 @@ def aggregate_ss_results(up_id,
                 
                 # Rename the data frame with the name of the column
                 dfs[col].name = col
+
+    # Inform the user that the aggregation was successful
+    infostr = \
+        f"{log_prefix}:The secondary structure predictions " \
+        f"from {source} for the variants have been successfully " \
+        f"aggregated (grouped by: {groupby})."
+    logger.info(infostr)
         
-        # Return the data frames
-        return dfs
+    # Return the data frames
+    return dfs
 
 
 
@@ -769,7 +1074,8 @@ def aggregate_ss_results(up_id,
 
 
 def get_and_write_fasta(uniprot_id,
-                        fasta_path):
+                        fasta_path,
+                        log_prefix = ""):
     """Write a FASTA file with the protein sequence corresponding
     to a given UniProt ID.
     """
@@ -784,17 +1090,36 @@ def get_and_write_fasta(uniprot_id,
     # the file exists
     os.makedirs(path, exist_ok = True)
     
-    # URL where to retrieve the FASTA data
-    url = "https://www.uniprot.org/uniprot/{:s}.fasta"
-    
     # Open the file
     with open(fasta_path, "w") as o:
         
-        # Open the URL
-        response = urllib.request.urlopen(url.format(uniprot_id))
+        # Get the data
+        response = rq.get(UNIPROT_FASTA_URL.format(uniprot_id))
+
+        # If something went wrong
+        if not response.ok:
+
+            # Warn the user
+            errstr = \
+                f"{log_prefix}:Something went wrong when trying to " \
+                f"get the FASTA sequence of the protein with " \
+                f"UniProt ID {uniprot_id} from " \
+                f"{UNIPROT_FASTA_URL.format(uniprot_id)}. Status " \
+                f"code: {response.status_code}."
+            logger.error(errstr)
+
+            # Raise en exception
+            raise Exception(errstr)
+
+        # Inform the user that everything went fine
+        infostr = \
+            f"{log_prefix}:The FASTA sequence of the protein with " \
+            f"UniProt ID {uniprot_id} has been successfully " \
+            f"retrieved from {UNIPROT_FASTA_URL.format(uniprot_id)}."
+        logger.info(infostr)
         
-        # read and decode the data
-        data = response.read().decode("utf-8").split("\n")
+        # Read the data
+        data = response.text.split("\n")
         
         # Write the data to the file 
         o.write(data[0] + "\n" + "".join(data[1:]))
@@ -804,12 +1129,13 @@ def get_and_write_fasta(uniprot_id,
 
 
 def write_fasta(sequence,
-                fasta_path):
+                fasta_path,
+                log_prefix = ""):
     """Write a FASTA file with a given protein sequence.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger() 
+    logger = reset_worker_logger()
     
     # Get the path to the FASTA file and the name of the file
     path, fasta_file = os.path.split(fasta_path)
@@ -827,18 +1153,38 @@ def write_fasta(sequence,
         # Write data to the file, using the file name as a header
         o.write(f">{name}\n{sequence}")
 
+    # Inform the user that the file has been successfully written
+    infostr = \
+        f"{log_prefix}:The FASTA file {fasta_path} has been " \
+        f"successfully written."
+    logger.info(infostr)
+
     # Return the path to the FASTA file
     return fasta_path
 
 
 def write_lir_phosphosites_csv(lir_p_sites,
-                               out_csv):
+                               out_csv,
+                               log_prefix = ""):
     """Write the phosphorylation sites found in a LIR 
     to a CSV file.
     """
     
     # Reset the distributed.worker logger
     logger = reset_worker_logger()
+
+    # If no phosphosites were passed
+    if not lir_p_sites:
+
+        # Inform the user that no file will be written
+        infostr = \
+            f"{log_prefix}:Since no phosphorylation sites " \
+            f"were found for the current LIR, no CSV file " \
+            f"containing them will be written."
+        logger.info(infostr)
+
+        # Return
+        return
 
     # Get the relative positions (= positions in the LIR), the
     # absolute positions (= positions in the full sequence)
@@ -852,15 +1198,31 @@ def write_lir_phosphosites_csv(lir_p_sites,
     # Create a data frame with the residue numbers and
     # residue types of the phosphorylation sites
     df = pd.DataFrame({"resnum" : res_num, "restype" : res_types})
+
+    # Inform the user that the data frame has been successfully
+    # created
+    infostr = \
+        f"{log_prefix}:The data frame containing the " \
+        f"phosphorylation sites has been successfully created."
+    logger.info(infostr)
     
     # Write the data frame to the output CSV file
     df.to_csv(out_csv,
               sep = ",",
-              index = False)   
+              index = False)
+
+    # Inform the user that the data frame has been successfully
+    # written
+    infostr = \
+        f"{log_prefix}:The data frame containing the " \
+        f"phosphorylation sites has been successfully written " \
+        f"to {out_csv}."
+    logger.info(infostr)
 
 
 def write_variants_csv(variants,
-                       out_csv):
+                       out_csv,
+                       log_prefix = ""):
     """Write a CSV file containing a dataframe with
     information about the LIR variants.
     """
@@ -871,7 +1233,13 @@ def write_variants_csv(variants,
     # If no variants were passed
     if not variants:
 
-        # Just return
+        # Inform the user that no file will be written
+        infostr = \
+            f"{log_prefix}:Since no variants were generated, " \
+            f"no CSV file for the variants will be written."
+        logger.info(infostr)
+
+        # Return
         return
 
     # Function to join list elements into a string
@@ -905,9 +1273,17 @@ def write_variants_csv(variants,
     df.to_csv(path_or_buf = out_csv,
               index = False)
 
+    # Inform the user that the data frame has been successfully
+    # written
+    infostr = \
+        f"{log_prefix}:The variants have been successfully " \
+        f"written to {out_csv}."
+    logger.info(infostr)
+
 
 def write_variants_markdown(variants,
-                            out_md):
+                            out_md,
+                            log_prefix = ""):
     """Write a Markdown file containing a table with
     information about the LIR variants (where positions
     with mutated residues are shown in bold).
@@ -919,11 +1295,17 @@ def write_variants_markdown(variants,
     # If no variants were passed
     if not variants:
 
-        # Just return
+        # Inform the user that no file will be written
+        infostr = \
+            f"{log_prefix}:Since no variants were generated, " \
+            f"no MarkDown file for the variants will be written."
+        logger.info(infostr)
+
+        # Return
         return
 
     # Open the output file
-    with open(outmd, "w") as o:
+    with open(out_md, "w") as o:
 
         # Write the header of the table
         o.write("| Name | Sequence | Start | End |\n")
@@ -946,6 +1328,13 @@ def write_variants_markdown(variants,
             # Write a table entry for the current variant
             o.write(f"| {var_n} | {var} | {start+1} | {end} |\n")
 
+    # Inform the user that the data frame has been successfully
+    # written
+    infostr = \
+        f"{log_prefix}:The variants have been successfully " \
+        f"written to {out_md}."
+    logger.info(infostr)
+
 
 def write_ilir_csv(lir_start,
                    lir_end,
@@ -957,6 +1346,9 @@ def write_ilir_csv(lir_start,
     
     # Reset the distributed.worker logger
     logger = reset_worker_logger()
+
+    # Get the log prefix
+    log_prefix = kwargs["log_prefix"]
 
     # Representation of missing values
     NA_REP = "NA"
@@ -972,11 +1364,26 @@ def write_ilir_csv(lir_start,
     # for the variants
     ilir_res = \
         {k : v for k, v in kwargs.items() \
-         if k not in ("lir_start", "lir_end", "out_csv")}
+         if k not in ("lir_start", "lir_end", 
+         "out_csv", "log_prefix")}
     
     # For each (variant name, result) pair in the dictionary
     # collecting iLIR results for all variants
     for var_name, res in ilir_res.items():
+
+        # If the file does not exist
+        if not os.path.exists(res):
+
+            # Warn the user and ignore the file
+            errstr = \
+                f"{log_prefix}:Could not find the file " \
+                f"{res} for the variant {var_name}. " \
+                f"Therefore, the variant will be excluded " \
+                f"from the aggregation of the iLIR results."
+            logger.error(errstr)
+
+            # Continue to the next variant
+            continue
         
         # Read the data frame containing the results
         il_df = pd.read_csv(res,
@@ -1023,18 +1430,33 @@ def write_ilir_csv(lir_start,
     # to each iLIR result)
     df = pd.DataFrame.from_dict(df_dict,
                                 orient = "index")
+
+    # Inform the user that the aggregation was successful
+    infostr = \
+        f"{log_prefix}:The iLIR results for the variants " \
+        f"have been successfully aggregated."
+    logger.info(infostr)
     
     # Save the data frame to the output CSV file
     df.to_csv(out_csv,
               sep = SEP,
               na_rep = NA_REP)
 
+    # Inform the user that the aggregated results were
+    # successfully written to the output file
+    infostr = \
+        f"{log_prefix}:The aggregated iLIR results for the " \
+        f"variants have been successfully written to {out_csv}."
+    logger.info(infostr)
+
 
 def write_ss_csv(ss_dfs,
                  wt_seq,
                  start,
                  end,
-                 out_csv):
+                 out_csv,
+                 source,
+                 log_prefix = ""):
     """Write a CSV file where rows represent the different variants
     and columns represent the secondary structure predictions for
     each residue of the LIR sequence.
@@ -1067,13 +1489,21 @@ def write_ss_csv(ss_dfs,
     df.to_csv(out_csv,
               sep = ",")
 
+    # Inform the user that the aggregated results were
+    # successfully written to the output file
+    infostr = \
+        f"{log_prefix}:The aggregated {source} results for the " \
+        f"variants have been successfully written to {out_csv}."
+    logger.info(infostr)
+
 
 def write_psipred_html(psipred_dfs,
                        start,
                        end,
                        out_html,
                        cmaps,
-                       chunk_size):
+                       chunk_size,
+                       log_prefix = ""):
     """Write an HTML file with the sequences of the variants
     color-coded according to their propensity to be in
     different secondary structures.
@@ -1215,3 +1645,10 @@ def write_psipred_html(psipred_dfs,
         # Close the remaining HTML tags
         o.write("</header>\n</article>\n</body>")  
         o.write("</html>")
+
+    # Inform the user that the aggregated results were
+    # successfully written to the output file
+    infostr = \
+        f"{log_prefix}:The aggregated PSIPRED results for the " \
+        f"variants have been successfully written to {out_html}."
+    logger.info(infostr)

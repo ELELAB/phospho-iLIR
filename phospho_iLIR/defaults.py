@@ -29,6 +29,9 @@
 
 
 
+UNIPROT_FASTA_URL = "https://www.uniprot.org/uniprot/{:s}.fasta"
+
+
 #------------------------------- iLIR --------------------------------#
 
 
@@ -44,14 +47,31 @@ ILIR_SERVERS = \
           "description" : "University of Warwick",
           "table_number" : 0}}
 
-# Columns in the output CSV file created from iLIR results
+# Columns in the output CSV file created from iLIR results mapped
+# to the names they have in the results when yielded by the 'warwick'
+# server and they name they should have in the final CSV file
 ILIR_CSV_COLS = \
-    {"motif" : "MOTIF",
-     "start" : "START",
-     "end" : "END",
-     "seq" : "LIR sequence",
-     "evalue" : "e-value",
-     "pssm_score" : "PSSM score",
-     "similar_lirs" : "Similar LIRs",
-     "in_pdb" : "In PDB",
-     "anchor" : "Anchor"}
+    {"motif" : ("Motif", "MOTIF"),
+     "start" : ("Start", "START"),
+     "end" : ("End", "END"),
+     "seq" : ("Pattern", "LIR sequence"),
+     "evalue" : (None, "e-value"),
+     "pssm_score" : ("PSSM Score", "PSSM score"),
+     "similar_lirs" : (None, "Similar LIRs"),
+     "in_pdb" : (None, "In PDB"),
+     "anchor" : ("LIR in Anchor", "Anchor")}
+
+
+
+#------------------------------ Spider3 ------------------------------#
+
+
+
+SP3_OUT_SUFFIX = ".i1"
+
+
+
+#------------------------------ PSIPRED ------------------------------#
+
+
+PSI_OUT_SUFFIX = ".ss2"

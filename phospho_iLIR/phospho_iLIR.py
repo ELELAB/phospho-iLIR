@@ -52,7 +52,7 @@ from .defaults import (
 
 
 
-def main():
+def run(logger):
 
 
 
@@ -94,15 +94,6 @@ def main():
 
 
 
-    ###################### LOGGING CONFIGURATION ######################
-    
-
-
-    # Configure the logging
-    logging.basicConfig(level = logging.INFO)
-
-
-
     ###################### GENERAL CONFIGURATION ######################
  
 
@@ -110,39 +101,54 @@ def main():
     # Get the UniProt IDs file
     IDS_FILE = args.idsfile
     
-    # Load and parse the configuration
-    CONFIG = yaml.full_load(open(args.configfile, "r"))
+    # Try to parse the configuration
+    try:
+
+        CONFIG = yaml.full_load(open(args.configfile, "r"))
+
+    # If something went wrong
+    except Exception as e:
+
+        # Warn the user
+        errstr = \
+            f"Could not parse the configuration file " \
+            f"{args.configfile}. Exception: {e}"
+        logger.error(errstr)
+
+        # Raise an exception
+        raise Exception(errstr)
     
-    # Top-level working directory
-    _wd = args.workdir
+    # Get the top-level working directory
+    top_wd = args.workdir
     
     # If only a directory name was passed, it will be a directory
     # created inside the current working directory
-    WD = os.path.abspath(_wd) if os.path.basename(_wd) != _wd \
-         else os.path.join(os.getcwd(), _wd)
+    WD = \
+        os.path.abspath(top_wd) if os.path.basename(top_wd) != top_wd \
+        else os.path.join(os.getcwd(), top_wd)
     
     # Number of processes to be used when running
     NPROC = args.nproc
     
-    # LIRs
+    # Configuration - LIRs
     LIR_CONFIG = CONFIG["lirs"]
     LIR_P_SITES_CSV = LIR_CONFIG["out_p_sites_suffix"] + ".csv"
     L_CONTEXT = LIR_CONFIG["l_context"]
     R_CONTEXT = LIR_CONFIG["r_context"]
     
-    # Variants
+    # Configuration - variants
     VAR_CSV = LIR_CONFIG["variants"]["out_suffix"] + ".csv"
     VAR_MD = LIR_CONFIG["variants"]["out_suffix"] + ".md"
     PRES2PMIM = LIR_CONFIG["variants"]["substitutions"]
     
-    # iLIR
+    # Configuration - iLIR
     IL_CONFIG = CONFIG["ilir"]
     IL_SERVER = IL_CONFIG["server"]
     IL_DIR = IL_CONFIG["dir_name"]
     IL_HTML = IL_CONFIG["out_suffix"] + ".html"
     IL_CSV = IL_CONFIG["out_suffix"] + ".csv"
     
-    # NetPhos
+    # Configuration - NetPhos
     NP_CONFIG = CONFIG["netphos"]
     NP_EXEC = NP_CONFIG["executable"]
     NP_SCRIPT = resource_filename(\
@@ -152,14 +158,14 @@ def main():
     NP_DAT = NP_CONFIG["raw_out_suffix"] + ".dat"
     NP_CSV = NP_CONFIG["proc_out_suffix"] + ".csv"
     
-    # Spider3
+    # Configuration - Spider3
     SP3_CONFIG = CONFIG["spider3"]
     SP3_RUN = SP3_CONFIG["run"]
     SP3_EXEC = SP3_CONFIG["executable"]
     SP3_DIR = SP3_CONFIG["dir_name"]
     SP3_CSV = SP3_CONFIG["aggregation"]["out_suffix"] + ".csv"
     
-    # PsiPred
+    # Configuration - PsiPred
     PSI_CONFIG = CONFIG["psipred"]
     PSI_RUN = PSI_CONFIG["run"]
     PSI_EXEC = PSI_CONFIG["executable"]
@@ -181,8 +187,8 @@ def main():
     
     # Use the same Python interpreter in use for the processing script
     part_np_script = functools.partial(util.run_process_netphos_output,
-                                      interpreter = sys.executable,
-                                      script = NP_SCRIPT)
+                                       interpreter = sys.executable,
+                                       script = NP_SCRIPT)
 
 
 
@@ -202,8 +208,22 @@ def main():
         # Set a client to submit the jobs to
         client = distributed.Client(cluster)
         
-        # Get the UniProt IDs 
-        up_ids = util.get_uniprot_ids(IDS_FILE)
+        # Try to get the UniProt IDs
+        try:
+            
+            up_ids = util.get_uniprot_ids(IDS_FILE)
+
+        # If something went wrong
+        except Exception as e:
+
+            # Warn the user
+            errstr = \
+                f"Could not get the UniProt IDs from {IDS_FILE}. " \
+                f"Exception: {e}."
+            logging.error(errstr)
+
+            # Raise an exception
+            raise Exception(errstr)
 
         # Create a list for orphan futures that need to be collected
         # before exiting
@@ -216,18 +236,30 @@ def main():
         # For each UniProt ID
         for up_id in up_ids:
             
-            # Create a path for the directory corresponding
+            # Set a path for the directory corresponding
             # to the current UniProt ID
             up_id_dir = os.path.join(WD, up_id)
+
+            # Create the directory
+            os.makedirs(up_id_dir, exist_ok = True)
+
+            # Set the logging options
+            log_opts = {"log_prefix" : up_id}
             
             # Write the FASTA file corresponding to the
             # UniProt sequence
             fasta_path = os.path.join(up_id_dir, up_id + ".fasta")
-            fasta = util.get_and_write_fasta(uniprot_id = up_id,
-                                             fasta_path = fasta_path)
+            fasta = \
+                client.submit(util.get_and_write_fasta,
+                              uniprot_id = up_id,
+                              fasta_path = fasta_path,
+                              **log_opts)
 
             # Get that sequence from the FASTA file
-            full_seq = util.get_sequence_from_fasta(fasta_path = fasta)
+            full_seq = \
+                client.submit(util.get_sequence_from_fasta,
+                              fasta_path = fasta,
+                              **log_opts)
 
 
             #----------------------- Run iLIR ------------------------#
@@ -243,11 +275,13 @@ def main():
             il_csv = os.path.join(il_dir, up_id + IL_CSV)
 
             # Launch iLIR
-            il_csv = client.submit(server = IL_SERVER,
+            il_csv = client.submit(util.run_ilir,
+                                   server = IL_SERVER,
                                    fasta = fasta,
                                    out_html = il_html,
                                    out_csv = il_csv,
-                                   wd = il_dir)
+                                   wd = il_dir,
+                                   **log_opts)
 
 
             #---------------------- Run NetPhos ----------------------#
@@ -264,14 +298,19 @@ def main():
             np_dat = client.submit(part_np,
                                    fasta = fasta,
                                    wd = np_dir,
-                                   out_dat = np_dat_path)
+                                   out_dat = np_dat_path,
+                                   **log_opts)
             
-            # Process the NetPhos .dat file
+            # Set the path to the output CSV file that the processing
+            # script will write
             np_csv_path = os.path.join(np_dir, up_id + NP_CSV)
+
+            # Process the NetPhos .dat file
             np_csv = client.submit(part_np_script,
                                    np_out = np_dat,
                                    out_csv = np_csv_path,
-                                   wd = np_dir)
+                                   wd = np_dir,
+                                   **log_opts)
 
 
             #--------------- Get LIRs and phosphosites ---------------#
@@ -280,11 +319,13 @@ def main():
             # Get the LIRs
             lirs = client.submit(util.get_lirs_ilir,
                                  full_seq = full_seq,
-                                 ilir_res = il_csv)
+                                 ilir_res = il_csv,
+                                 **log_opts)
             
             # Get the phosphorylation sites
             p_sites = client.submit(util.get_phosphosites_netphos,
-                                    netphos_res = np_csv)
+                                    netphos_res = np_csv,
+                                    **log_opts)
 
 
             #---------------------- Run Spider3 ----------------------#
@@ -301,7 +342,8 @@ def main():
                 futures.append(client.submit(part_sp3,
                                              fasta = fasta,
                                              out_prefix = up_id,
-                                             wd = sp3_dir))
+                                             wd = sp3_dir,
+                                             **log_opts))
             
             # If PSIPRED needs to be run
             if PSI_RUN:
@@ -313,31 +355,60 @@ def main():
                 # Launch PSIPRED
                 futures.append(client.submit(part_psi,
                                              fasta = fasta,
-                                             wd = psi_dir))
+                                             out_prefix = up_id,
+                                             wd = psi_dir,
+                                             **log_opts))
 
 
             #------------------------- LIRs --------------------------#
             
             
             # For each LIR (use result() here since it is a very
-            # fast calculations and does not block the workers for
-            # a long time)
-            for future, lir in lirs.result():
+            # fast calculation and it does not block the workers
+            # for a long time)
+            for lir in lirs.result():
 
                 # Get the raw LIR attributes
                 raw_lir_seq, raw_lir_start, raw_lir_end = lir
                 
-                # Get the extended LIR sequence
+                # Get the extended LIR sequence (use result() here
+                # since it is a very fast calculation and it does
+                # not block the workers for a long time)
                 ext_lir = \
-                    util.get_extended_lir(lir = lir,
-                                          full_seq = full_seq,
-                                          l_context = L_CONTEXT,
-                                          r_context = R_CONTEXT)
+                    client.submit(util.get_extended_lir,
+                                  lir = lir,
+                                  full_seq = full_seq,
+                                  l_context = L_CONTEXT,
+                                  r_context = R_CONTEXT).result()
+
+                # Get the LIR name, sequence, starting and ending point
+                lir_name, lir_seq, lir_start, lir_end = ext_lir
+
+                # Set a path for the LIR directory
+                lir_dir = os.path.join(up_id_dir, lir_name)
+
+                # Create the directory
+                os.makedirs(lir_dir, exist_ok = True)
+
+                # Set the options for logging
+                lir_log_opts = {"log_prefix" : f"{up_id}:{lir_name}"}
+
+                # Set the path for the FASTA file which will contain
+                # the LIR sequence
+                lir_fasta_path = \
+                    os.path.join(lir_dir, lir_name + ".fasta")
+
+                # Generate a FASTA file with the LIR sequence
+                lir_fasta = client.submit(util.write_fasta,
+                                          sequence = lir_seq,
+                                          fasta_path = lir_fasta_path,
+                                          **lir_log_opts)
                 
                 # Get the LIR phosphorylation sites
                 lir_p_sites = client.submit(util.get_lir_phosphosites,
                                             lir = ext_lir,
-                                            p_sites = p_sites)
+                                            p_sites = p_sites,
+                                            **lir_log_opts)
 
                 # Set the path to the output CSV file that will contain
                 # the phosphorylation sites found in the LIR
@@ -348,23 +419,8 @@ def main():
                 futures.append(\
                     client.submit(util.write_lir_phosphosites_csv,
                                   lir_p_sites = lir_p_sites,
-                                  out_csv = lir_p_sites_csv))
-
-                # Get the LIR name, sequence, starting and ending point
-                lir_name, lir_seq, lir_start, lir_end = ext_lir
-
-                # Create a path for the LIR directory
-                lir_dir = os.path.join(up_id_dir, lir_name)
-                
-                # Set the path for the FASTA file which will contain
-                # the LIR sequence
-                lir_fasta_path = \
-                    os.path.join(lir_dir, lir_name + ".fasta")
-
-                # Generate a FASTA file with the LIR sequence
-                lir_fasta = client.submit(util.write_fasta,
-                                          sequence = lir_seq,
-                                          fasta_path = lir_fasta_path)
+                                  out_csv = lir_p_sites_csv,
+                                  **lir_log_opts))
                 
                 # Get the LIR phosphomimetic variants
                 variants = client.submit(util.get_variants,
@@ -372,7 +428,8 @@ def main():
                                          lir = ext_lir,
                                          full_seq = full_seq,
                                          lir_p_sites = lir_p_sites,
-                                         pres2pmim = PRES2PMIM)
+                                         pres2pmim = PRES2PMIM,
+                                         **lir_log_opts)
 
 
                 #--------------------- Variants ----------------------#
@@ -386,7 +443,8 @@ def main():
                 futures.append(\
                     client.submit(util.write_variants_csv,
                                   variants = variants,
-                                  out_csv = var_csv))
+                                  out_csv = var_csv,
+                                  **lir_log_opts))
                 
                 # Set the path to the output MarkDown file that will
                 # contain the variants
@@ -396,7 +454,8 @@ def main():
                 futures.append(\
                     client.submit(util.write_variants_markdown,
                                   variants = variants,
-                                  out_md = var_md))
+                                  out_md = var_md,
+                                  **lir_log_opts))
                 
                 # Create dictionaries to store the results for
                 # all variants (output files)
@@ -409,32 +468,45 @@ def main():
 
                     # Add a dictionary for its results
                     var_sp3_res = \
-                        {up_id : os.path.join(sp3_dir, up_id + ".i1")}
+                        {up_id : \
+                            {"results" : \
+                                os.path.join(sp3_dir, up_id + ".i1"),
+                             "start" : raw_lir_start,
+                             "end" : raw_lir_end}}
 
                 # If PSIPRED needs to be run
                 if PSI_RUN:
 
                     # Add a dictionary for its results
                     var_psi_res = \
-                        {upid : os.path.join(psi_dir, up_id + ".ss2")}
+                        {up_id : \
+                            {"results" : \
+                                os.path.join(psi_dir, up_id + ".ss2"),
+                             "start" : raw_lir_start,
+                             "end" : raw_lir_end}}
 
-                # For each LIR variant
-                for i, variant in enumerate(variants):
-
-                    # If the variant is the wild-type sequence
-                    if i == 0:
-
-                        # Skip it
-                        continue
+                # For each LIR variant (apart from the wild-type)
+                # (use result() here since it is a very fast
+                # calculation and it does not block the workers
+                # for a long time)
+                for variant in variants.result()[1:]:
                     
-                    # Get the variant name, sequences, starting
-                    # and ending point, mutations present and
+                    # Get the variant name, partial and full sequence,
+                    # starting and ending point, mutations present and
                     # positions of such mutations in the sequence
                     var_name, var_seq, var_full_seq, var_start, \
                         var_end, var_muts, var_pos = variant
                     
-                    # Create a path for the variant directory
+                    # Set a path for the variant directory
                     var_dir = os.path.join(lir_dir, var_name)
+
+                    # Create the directory
+                    os.makedirs(var_dir, exist_ok = True)
+
+                    # Set the options for logging
+                    var_log_opts = \
+                        {"log_prefix" : \
+                            f"{up_id}:{lir_name}:{var_name}"}
                     
                     # Set the path to a FASTA file with the variant
                     # sequence within the context of the full UniProt
@@ -446,7 +518,8 @@ def main():
                     var_fasta = \
                         client.submit(util.write_fasta,
                                       sequence = var_full_seq,
-                                      fasta_path = var_fasta_path)                 
+                                      fasta_path = var_fasta_path,
+                                      **var_log_opts)                 
                     
                     # Set the path to the directory that will contain
                     # the results from iLIR for the current variant
@@ -466,11 +539,13 @@ def main():
 
                     # Launch iLIR
                     var_il_res[var_name] = \
-                        client.submit(server = IL_SERVER,
+                        client.submit(util.run_ilir,
+                                      server = IL_SERVER,
                                       fasta = var_fasta,
                                       out_html = var_il_html,
                                       out_csv = var_il_csv,
-                                      wd = var_il_dir)
+                                      wd = var_il_dir,
+                                      **var_log_opts)
 
                     # If Spider3 needs to be run
                     if SP3_RUN:
@@ -481,11 +556,13 @@ def main():
                         var_sp3_dir = os.path.join(var_dir, SP3_DIR)
 
                         # Launch Spider3
-                        var_sp3_res[var_name] = \
+                        var_sp3_res[var_name] = {}
+                        var_sp3_res[var_name]["results"] = \
                             client.submit(part_sp3,
                                           fasta = var_fasta,
                                           out_prefix = var_name,
-                                          wd = var_sp3_dir)
+                                          wd = var_sp3_dir,
+                                          **var_log_opts)
 
                     # If PSIPRED needs to be run
                     if PSI_RUN:
@@ -496,11 +573,13 @@ def main():
                         var_psi_dir = os.path.join(var_dir, PSI_DIR)
 
                         # Launch PSIPRED
-                        var_psi_res[var_name] = \
+                        var_psi_res[var_name] = {}
+                        var_psi_res[var_name]["results"] = \
                             client.submit(part_psi,
                                           fasta = var_fasta,
                                           out_prefix = var_name,
-                                          wd = var_psi_dir)
+                                          wd = var_psi_dir,
+                                          **var_log_opts)
 
            
                 #------------------- Aggregation ---------------------#
@@ -513,9 +592,9 @@ def main():
                     sp3ss_dfs = client.submit(\
                                     util.aggregate_ss_results,
                                     up_id = up_id,
-                                    source = "spider3",
+                                    source = "Spider3",
                                     groupby = "variant",
-                                    **var_sp3_res)
+                                    **{**var_sp3_res, **lir_log_opts})
                     
                     # Set the path to the output CSV file that will
                     # contain the Spider3 results for all the variants
@@ -525,11 +604,13 @@ def main():
                     # Write the file
                     futures.append(client.submit(\
                                    util.write_ss_csv,
-                                   ss_dfs = sp3_ss_dfs,
+                                   ss_dfs = sp3ss_dfs,
                                    wt_seq = lir_seq,
                                    start = lir_start,
                                    end = lir_end,
-                                   out_csv = out_sp3_csv))
+                                   out_csv = out_sp3_csv,
+                                   source = "Spider3",
+                                   **lir_log_opts))
 
                 # If PSIPRED was run
                 if PSI_RUN:
@@ -538,10 +619,9 @@ def main():
                     psiss_dfs = client.submit(\
                                     util.aggregate_ss_results,
                                     up_id = up_id,
-                                    ss_res = var_psi_res,
-                                    source = "psipred",
+                                    source = "PSIPRED",
                                     groupby = "variant",
-                                    **var_psi_res)
+                                    **{**var_psi_res, **lir_log_opts})
                     
                     # Set the path to the output CSV file that will
                     # contain the PSIPRED results for all the variants
@@ -556,7 +636,9 @@ def main():
                             wt_seq = lir_seq,
                             start = lir_start,
                             end = lir_end,
-                            out_csv = out_psi_csv))
+                            out_csv = out_psi_csv,
+                            source = "PSIPRED",
+                            **lir_log_opts))
                     
                     # Set the path to the output HTML file that will
                     # contain the PSIPRED results for all the variants
@@ -572,7 +654,8 @@ def main():
                             end = lir_end,
                             out_html = out_psi_html,
                             cmaps = PSI_HTML_CMAPS,
-                            chunk_size = PSI_HTML_CHUNK_SIZE))
+                            chunk_size = PSI_HTML_CHUNK_SIZE,
+                            **lir_log_opts))
 
                 
                 # Set the path to the output CSV file that will contain
@@ -586,11 +669,34 @@ def main():
                         lir_start = raw_lir_start,
                         lir_end = raw_lir_end,
                         out_csv = out_il_csv,
-                        **ilir_res))
+                        **{**var_il_res, **lir_log_opts}))
 
 
         # Gather all orphan futures still running
         client.gather(futures)
 
-if __name__ == "__main__":
-    main()
+
+
+def main():
+
+    # Configure the logging
+    logging.basicConfig(level = logging.INFO)
+
+    # Get the module logger
+    logger = logging.getLogger(__name__)
+
+    # Try running the pipeline
+    try:
+        
+        run(logger)
+
+    # If something went wrong
+    except Exception as e:
+
+        # Warn the user
+        errstr = \
+            f"Could not run phospho_iLIR. Exception: {e}"
+        logging.error(errstr)
+
+        # Exit
+        sys.exit(errstr)

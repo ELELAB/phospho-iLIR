@@ -43,7 +43,7 @@ lirs:
 ilir:
 
   # iLIR server to be used ('cyprus' or 'warwick')
-  server: "cyprus"
+  server: "warwick"
   
   # Name of the directory that will contain all iLIR results 
   # (the same directory name will be used both for the results
