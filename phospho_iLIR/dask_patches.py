@@ -54,7 +54,9 @@ def reset_worker_logger(log_file = None):
         [h for h in logger.handlers if type(h).__name__ == \
          DequeHandler.__name__]
 
-    formatter = logging.Formatter("%(name)s:%(levelname)s:%(message)s")
+    # Set a formatter for the log messages
+    formatter = \
+        logging.Formatter("%(name)s:%(levelname)s:%(message)s")
 
     # Remove all the handlers from the logger
     for h in logger.handlers:
@@ -65,15 +67,27 @@ def reset_worker_logger(log_file = None):
         
         # Set the new level for the handler
         h.setLevel(NEWLEVEL)
+
+        # Set the formatter for the handler
         h.setFormatter(formatter)
+
         # Add the handler to the logger
         logger.addHandler(h)
 
-    if log_file:
+    # If a log file was passed
+    if log_file is not None:
 
-        handler = logging.FileHandler(log_file, mode = "a")
+        # Create a handler to log to a file
+        handler = logging.FileHandler(log_file,
+                                      mode = "a")
+        
+        # Set the level for the handler
         handler.setLevel(NEWLEVEL)
+
+        # Set the formatter for the handler
         handler.setFormatter(formatter)
+
+        # Add the handler to the logger
         logger.addHandler(handler)
 
     # Reset the logger level to the new level

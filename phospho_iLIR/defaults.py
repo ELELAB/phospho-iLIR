@@ -29,7 +29,14 @@
 
 
 
+#------------------------------ General ------------------------------#
+
+
+# Where to retrieve the FASTA files for the UniProt sequences
 UNIPROT_FASTA_URL = "https://www.uniprot.org/uniprot/{:s}.fasta"
+
+# Default name for the log file
+LOG_FILE_DEFAULT = "phospho_iLIR.log"
 
 
 #------------------------------- iLIR --------------------------------#

@@ -46,6 +46,7 @@ import yaml
 # phospho-iLIR
 from . import util
 from .defaults import (
+    LOG_FILE_DEFAULT,
     PSI_OUT_SUFFIX,
     SP3_OUT_SUFFIX,
     )
@@ -82,6 +83,12 @@ def run(logger):
                         type = str,
                         default = os.getcwd(),
                         help = d_helpstr)
+
+    l_helpstr = f"Log file. Default is: {LOG_FILE_DEFAULT}."
+    parser.add_argument("-l", "--logfile",
+                        type = str,
+                        default = LOG_FILE_DEFAULT,
+                        help = l_helpstr)
 
     n_helpstr = "Number of processes to use. Default is one process."
     parser.add_argument("-n", "--nproc",
@@ -126,6 +133,9 @@ def run(logger):
     WD = \
         os.path.abspath(top_wd) if os.path.basename(top_wd) != top_wd \
         else os.path.join(os.getcwd(), top_wd)
+
+    # Log file
+    LOG_FILE = args.logfile
     
     # Number of processes to be used when running
     NPROC = args.nproc
@@ -244,7 +254,9 @@ def run(logger):
             os.makedirs(up_id_dir, exist_ok = True)
 
             # Set the logging options
-            log_opts = {"log_prefix" : up_id}
+            log_opts = \
+                {"log_prefix" : up_id,
+                 "log_file" : LOG_FILE}
             
             # Write the FASTA file corresponding to the
             # UniProt sequence
@@ -391,7 +403,9 @@ def run(logger):
                 os.makedirs(lir_dir, exist_ok = True)
 
                 # Set the options for logging
-                lir_log_opts = {"log_prefix" : f"{up_id}:{lir_name}"}
+                lir_log_opts = \
+                    {"log_prefix" : f"{up_id}:{lir_name}",
+                     "log_file" : LOG_FILE}
 
                 # Set the path for the FASTA file which will contain
                 # the LIR sequence
@@ -506,7 +520,9 @@ def run(logger):
                     # Set the options for logging
                     var_log_opts = \
                         {"log_prefix" : \
-                            f"{up_id}:{lir_name}:{var_name}"}
+                            f"{up_id}:{lir_name}:{var_name}",
+                         "log_file" : \
+                            LOG_FILE}
                     
                     # Set the path to a FASTA file with the variant
                     # sequence within the context of the full UniProt

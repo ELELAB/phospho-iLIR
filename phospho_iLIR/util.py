@@ -65,14 +65,15 @@ def run_ilir(server,
              out_html,
              out_csv,
              wd,
-             log_prefix = ""):
+             log_prefix = "",
+             log_file = None):
     """Run iLIR. The code has been adapted from
     the iLIR standalone tool developed by Matteo
     Tiberti <matteo.tiberti@gmail.com>.
     """
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Make sure that the specified directory exists.
     # If not, create it.
@@ -238,12 +239,13 @@ def run_netphos(executable,
                 fasta,
                 wd,
                 out_dat,
-                log_prefix = ""):
+                log_prefix = "",
+                log_file = None):
     """Run NetPhos 3.1.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Make sure that the specified directory exists.
     # If not, create it. 
@@ -307,12 +309,13 @@ def run_spider3(executable,
                 out_prefix,
                 wd,
                 stdout = subprocess.DEVNULL,
-                log_prefix = ""):
+                log_prefix = "",
+                log_file = None):
     """Run Spider3.
     """
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Make sure that the specified directory exists.
     # If not, create it.  
@@ -374,12 +377,13 @@ def run_psipred(executable,
                 wd,
                 stdout = subprocess.DEVNULL,
                 stderr = subprocess.DEVNULL,
-                log_prefix = ""):
+                log_prefix = "",
+                log_file = None):
     """Run PSIPRED.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
     
     # Make sure that the specified directory exists.
     # If not, create it.
@@ -448,12 +452,13 @@ def run_process_netphos_output(interpreter,
                                out_csv,
                                wd,
                                stdout = subprocess.DEVNULL,
-                               log_prefix = ""):
+                               log_prefix = "",
+                               log_file = None):
     """Process the output obtained from NetPhos 3.1.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Make sure that the specified directory exists.
     # If not, create it.
@@ -521,12 +526,13 @@ def get_uniprot_ids(uniprot_ids_file):
 
 
 def get_sequence_from_fasta(fasta_path,
-                            log_prefix = ""):
+                            log_prefix = "",
+                            log_file = None):
     """Get a protein sequence from a FASTA file.
     """
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Initialize the sequence to an empty string
     sequence = ""
@@ -558,7 +564,8 @@ def get_sequence_from_fasta(fasta_path,
 
 def get_lirs_ilir(ilir_res,
                   full_seq,
-                  log_prefix = ""):
+                  log_prefix = "",
+                  log_file = None):
     """Parse the results from iLIR and return the list of LIRs
     found.
     """
@@ -567,7 +574,7 @@ def get_lirs_ilir(ilir_res,
     # dask Client.submit() or similar
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Try to read the data frame containing the iLIR results
     try:
@@ -649,7 +656,8 @@ def get_lirs_ilir(ilir_res,
 
 
 def get_phosphosites_netphos(netphos_res,
-                             log_prefix = ""):
+                             log_prefix = "",
+                             log_file = None):
     """Parse the results from NetPhos 3.1 and
     return a set of sequence positions predicted
     to be phosphorylation sites.
@@ -659,7 +667,7 @@ def get_phosphosites_netphos(netphos_res,
     # dask Client.submit() or similar
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
     
     # Try to read the NetPhos results as a data frame
     try:
@@ -689,7 +697,8 @@ def get_extended_lir(lir,
                      full_seq,
                      l_context,
                      r_context,
-                     log_prefix = ""):
+                     log_prefix = "",
+                     log_file = None):
     """Include a variable length residue context
     into the original LIR sequence.
     """
@@ -698,7 +707,7 @@ def get_extended_lir(lir,
     # since it should come from UniProt
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
     
     # Get the LIR sequence and its starting and
     # ending point
@@ -760,7 +769,8 @@ def get_extended_lir(lir,
 
 def get_lir_phosphosites(lir,
                          p_sites,
-                         log_prefix = ""):
+                         log_prefix = "",
+                         log_file = None):
     """Get the phosphorylation sites found in a LIR,
     given the LIR and a set of possible phosphosites.
     """
@@ -769,7 +779,7 @@ def get_lir_phosphosites(lir,
     # dask Client.submit() or similar
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
     
     # Get the LIR name, sequence, starting and ending point
     name, seq, start, end = lir
@@ -824,7 +834,8 @@ def get_variants(up_id,
                  full_seq,
                  lir_p_sites,
                  pres2pmim,
-                 log_prefix = ""):
+                 log_prefix = "",
+                 log_file = None):
     """Get all combinations of the phosphomimetic variants of
     the protein given a LIR possible phosphorylation sites.
     """
@@ -833,7 +844,7 @@ def get_variants(up_id,
     # dask Client.submit() or similar
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Get the LIR name, sequence, starting and ending point
     name, seq, start, end = lir
@@ -949,7 +960,7 @@ def aggregate_ss_results(up_id,
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file = kwargs["log_file"])
 
     # Get the log prefix
     log_prefix = kwargs["log_prefix"]
@@ -986,7 +997,8 @@ def aggregate_ss_results(up_id,
     # for the variants
     ss_res = \
         {k : v for k, v in kwargs.items() \
-         if k not in ("up_id", "source", "groupby", "log_prefix")}
+         if k not in ("up_id", "source", "groupby",
+                      "log_prefix", "log_file")}
 
     # Get start and end positions of the LIR in
     # the full sequence
@@ -1075,13 +1087,14 @@ def aggregate_ss_results(up_id,
 
 def get_and_write_fasta(uniprot_id,
                         fasta_path,
-                        log_prefix = ""):
+                        log_prefix = "",
+                        log_file = None):
     """Write a FASTA file with the protein sequence corresponding
     to a given UniProt ID.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Get the path to the FASTA file and the name of the file
     path, fasta_file = os.path.split(fasta_path)
@@ -1130,12 +1143,13 @@ def get_and_write_fasta(uniprot_id,
 
 def write_fasta(sequence,
                 fasta_path,
-                log_prefix = ""):
+                log_prefix = "",
+                log_file = None):
     """Write a FASTA file with a given protein sequence.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
     
     # Get the path to the FASTA file and the name of the file
     path, fasta_file = os.path.split(fasta_path)
@@ -1165,13 +1179,14 @@ def write_fasta(sequence,
 
 def write_lir_phosphosites_csv(lir_p_sites,
                                out_csv,
-                               log_prefix = ""):
+                               log_prefix = "",
+                               log_file = None):
     """Write the phosphorylation sites found in a LIR 
     to a CSV file.
     """
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # If no phosphosites were passed
     if not lir_p_sites:
@@ -1222,13 +1237,14 @@ def write_lir_phosphosites_csv(lir_p_sites,
 
 def write_variants_csv(variants,
                        out_csv,
-                       log_prefix = ""):
+                       log_prefix = "",
+                       log_file = None):
     """Write a CSV file containing a dataframe with
     information about the LIR variants.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # If no variants were passed
     if not variants:
@@ -1283,14 +1299,15 @@ def write_variants_csv(variants,
 
 def write_variants_markdown(variants,
                             out_md,
-                            log_prefix = ""):
+                            log_prefix = "",
+                            log_file = None):
     """Write a Markdown file containing a table with
     information about the LIR variants (where positions
     with mutated residues are shown in bold).
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # If no variants were passed
     if not variants:
@@ -1345,7 +1362,7 @@ def write_ilir_csv(lir_start,
     """
     
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file = kwargs["log_file"])
 
     # Get the log prefix
     log_prefix = kwargs["log_prefix"]
@@ -1365,7 +1382,7 @@ def write_ilir_csv(lir_start,
     ilir_res = \
         {k : v for k, v in kwargs.items() \
          if k not in ("lir_start", "lir_end", 
-         "out_csv", "log_prefix")}
+         "out_csv", "log_prefix", "log_file")}
     
     # For each (variant name, result) pair in the dictionary
     # collecting iLIR results for all variants
@@ -1456,14 +1473,15 @@ def write_ss_csv(ss_dfs,
                  end,
                  out_csv,
                  source,
-                 log_prefix = ""):
+                 log_prefix = "",
+                 log_file = None):
     """Write a CSV file where rows represent the different variants
     and columns represent the secondary structure predictions for
     each residue of the LIR sequence.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Wild type LIR sequence, start and end points are needed to set
     # the column names (residue type and number) and to select only
@@ -1503,14 +1521,15 @@ def write_psipred_html(psipred_dfs,
                        out_html,
                        cmaps,
                        chunk_size,
-                       log_prefix = ""):
+                       log_prefix = "",
+                       log_file = None):
     """Write an HTML file with the sequences of the variants
     color-coded according to their propensity to be in
     different secondary structures.
     """
 
     # Reset the distributed.worker logger
-    logger = reset_worker_logger()
+    logger = reset_worker_logger(log_file)
 
     # Get the sequence starting and ending points
     seq_start = start
