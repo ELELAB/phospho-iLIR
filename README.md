@@ -30,7 +30,7 @@ The user must have these programs installed before running the phospho-iLIR scri
 
 The following Python requirements must also be met:
 
-* `python` v3.7 or higher
+* `python` v3.8 or higher
 
 All required Python dependencies will be installed together with phospho_iLIR, if not already present.
 
@@ -57,8 +57,9 @@ This is the executable responsible for running the phospho-iLIR pipeline.
 | `-h`, `--help`       | Show the help message and exit.                              |
 | `-i`, `--idsfile`    | File containing the list of UniProt IDs.                     |
 | `-c`, `--configfile` | Configuration file.                                          |
-| `-d`, `--workdir`    | Working directory. Default is the current working directory. |
-| `-n`, `--nproc`      | Number of processes to use. Default is one process.          |
+| `-d`, `--workdir`    | Working directory. The default is the current working directory. |
+| `-l`, `--logfile`    | Log file. The default is phospho-_LIR.log, The log messages will be printed both to the log file and the standard output. |
+| `-n`, `--nproc`      | Number of processes to use. The default is one process.      |
 
 #### Input files
 
@@ -68,7 +69,7 @@ A file containig a newline-separated list of UniProt IDs.
 
 ##### Configuration file
 
-A YAML file containing the script configuration (please see the `config.yaml` file in `config` for an example of configuration file).
+A YAML file containing the script configuration (please look at the `config.yaml` file in the `phospho_iLIR/config` directory for an example of configuration file).
 
 #### Outputs
 

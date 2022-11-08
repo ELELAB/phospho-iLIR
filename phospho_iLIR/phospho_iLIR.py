@@ -78,19 +78,24 @@ def run(logger):
                         help = c_helpstr)
 
     d_helpstr = \
-        "Working directory. Default is the current working directory."
+        "Working directory. The default is the current working " \
+        "directory."
     parser.add_argument("-d", "--workdir",
                         type = str,
                         default = os.getcwd(),
                         help = d_helpstr)
 
-    l_helpstr = f"Log file. Default is: {LOG_FILE_DEFAULT}."
+    l_helpstr = \
+        f"Log file. The default is: {LOG_FILE_DEFAULT}. The log " \
+        f"messages will be printed both to the log file and " \
+        f"the standard output."
     parser.add_argument("-l", "--logfile",
                         type = str,
                         default = LOG_FILE_DEFAULT,
                         help = l_helpstr)
 
-    n_helpstr = "Number of processes to use. Default is one process."
+    n_helpstr = \
+        "Number of processes to use. The default is one process."
     parser.add_argument("-n", "--nproc",
                         type = int,
                         default = 1,
