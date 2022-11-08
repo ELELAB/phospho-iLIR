@@ -1,80 +1,136 @@
-# configuration affecting the single LIRs
-lirs:
-  # suffix of the file name(s) containing the phosphorylation sites in the LIR
-  outpsitessuffix: -phosphosites
-  # number of flanking residues to be considered on the left of the LIR
-  lcontext: 8
-  # number of flanking residues to be considered on the right of the LIR
-  rcontext: 8
 
-  # configuration affecting the LIR variants
+#------------------------------- LIRs --------------------------------#
+
+
+
+# Configuration affecting the single LIRs
+lirs:
+  
+  # Suffix of the file name(s) containing the phosphorylation
+  # sites in the LIR
+  out_p_sites_suffix: -phosphosites
+  
+  # Number of flanking residues to be considered on the left
+  # of the LIR
+  l_context: 8
+  
+  # Number of flanking residues to be considered on the right
+  # of the LIR
+  r_context: 8
+
+  # Configuration affecting the LIR variants
   variants:
-    # suffix of the file names(s) containing all variants
-    outsuffix: -variants
-    # residues used to replace those in phosphoryation sites
+    
+    # Suffix of the file names(s) containing all variants
+    out_suffix: -variants
+    
+    # Residues used to replace those in phosphoryation sites
     substitutions:
+      
       "S": E
-      # better replacements than glutamate should be used 
+      # Better replacements than glutamate should be used 
       # for threonines and tyrosines
       "T": E
       "Y": E
 
+
+
+#------------------------------- iLIR --------------------------------#
+
+
+
 # iLIR configuration
 ilir:
-  # path to the iLIR wrapper
-  executable: /data/tools_scripts_repository/CBL-scripts/CBL-SB/ilir/ilir
-  # name of the directory that will contain all iLIR results 
+
+  # iLIR server to be used ('cyprus' or 'warwick')
+  server: "warwick"
+  
+  # Name of the directory that will contain all iLIR results 
   # (the same directory name will be used both for the results
   # of the wild-type and for those of the variants)
-  dirname: ilir
-  # suffix to be used for iLIR output files
-  outsuffix: -ilir
+  dir_name: ilir
+  
+  # Suffix to be used for iLIR output files
+  out_suffix: -ilir
+
+
+#------------------------------ NetPhos ------------------------------#
+
+
 
 # NetPhos configuration
 netphos:
-  # path to the NetPhos executable
+  
+  # Path to the NetPhos executable
   executable: netphos
-  # name of the directory that will contain the NetPhos results
-  dirname: netphos
-  # suffix to be used for raw output files
-  rawoutsuffix: -netphos
-  # suffix to be used for processed output files
-  procoutsuffix: -netphos_processed
+  
+  # Name of the directory that will contain the NetPhos results
+  dir_name: netphos
+  
+  # Suffix to be used for raw output files
+  raw_out_suffix: -netphos
+  
+  # Suffix to be used for processed output files
+  proc_out_suffix: -netphos_processed
+
+
+
+#------------------------------ Spider3 ------------------------------#
+
+
 
 # Spider3 configuration
 spider3:
-  # whehter to run Spider3 for the wild-type protein and all variants
+  
+  # Whehter to run Spider3 for the wild-type protein and all variants
   run: True
-  # path to the Spider3 executable
+  
+  # Path to the Spider3 executable
   executable: spider3
-  # name of the directory that will contain all Spider3 results 
+  
+  # Name of the directory that will contain all Spider3 results 
   # (the same directory name will be used both for the results 
   # of the wild-type and for those of the variants)
-  dirname: spider3
-  # data aggregation configuration
+  dir_name: spider3
+  
+  # Data aggregation configuration
   aggregation:
-    # suffix for the aggregated output files
-    outsuffix: -spider3
+    
+    # Suffix for the aggregated output files
+    out_suffix: -spider3
+
+
+
+#------------------------------ PSIPRED ------------------------------#
+
+
 
 # PSIPRED configuration
 psipred:
+  
   # whether to run PSIPRED for the wild-type protein and all variants
   run: True
-  # path to the PSIPRED executable
+  
+  # Path to the PSIPRED executable
   executable: /usr/local/psipred/runpsipred
-  # name of the directory that will contain all PSIPRED results 
+  
+  # Name of the directory that will contain all PSIPRED results 
   # (the same directory name will be used both for the results 
   # of the wild-type and for those of the variants)
-  dirname: psipred
-  # data aggregation configuration
+  dir_name: psipred
+  
+  # Data aggregation configuration
   aggregation:
-    # suffix for the aggregated output files
-    outsuffix: -psipred
-    # color maps to be used to show the propensities for the
-    # different secondary structures in the HTML aggregation file 
-    # (Coil, Helix, Strand)
+    
+    # Suffix for the aggregated output files
+    out_suffix: -psipred
+    
+    # Names of the Matplotlib color maps to be used to show the
+    # propensities of the different secondary structures in the
+    # HTML aggregation file (Coil, Helix, Strand)
     cmaps: Blues, Greens, Oranges
-    # length of each chunk of residues to be shown on each line
+    
+    # Length of each chunk of residues to be shown on each line
     # in the HTML aggregation file (especially useful for really
     # long protein sequences)
-    chunksize: 20
+    chunk_size: 20

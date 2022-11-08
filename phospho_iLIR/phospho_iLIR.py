@@ -8,7 +8,7 @@
 #    in the secondary structure possibly due to phosphorylation
 #    events.
 #
-#    Copyright (C) 2020 Valentina Sora 
+#    Copyright (C) 2022 Valentina Sora 
 #                       <sora.valentina1@gmail.com>
 #                       Matteo Tiberti 
 #                       <matteo.tiberti@gmail.com> 
@@ -31,161 +31,216 @@
 
 
 
-# standard library
+# Standard library
 import argparse
 import functools
 import logging
 import os
 from pkg_resources import resource_filename, Requirement
 import sys
-# third-party packages
+# Third-party packages
 import dask
 import distributed
 import matplotlib.pyplot as plt
 import yaml
 # phospho-iLIR
 from . import util
+from .defaults import (
+    LOG_FILE_DEFAULT,
+    PSI_OUT_SUFFIX,
+    SP3_OUT_SUFFIX,
+    )
 
 
 
-def main():
+def run(logger):
+
 
 
     ######################### ARGUMENT PARSER #########################
 
+
     
-    # create the parser
+    # Create the parser
     parser = argparse.ArgumentParser()
 
-    # add arguments
+    # Add the arguments
     i_helpstr = "File containing the list of UniProt IDs."
-    parser.add_argument("-i", "--idsfile", \
-                        type = str, \
-                        required = True, \
+    parser.add_argument("-i", "--idsfile",
+                        type = str,
+                        required = True,
                         help = i_helpstr)
 
     c_helpstr = "Configuration file."
-    parser.add_argument("-c", "--configfile", \
-                        type = str, \
-                        required = True, \
+    parser.add_argument("-c", "--configfile",
+                        type = str,
+                        required = True,
                         help = c_helpstr)
 
     d_helpstr = \
-        "Working directory. Default is the current working directory."
-    parser.add_argument("-d", "--workdir", \
-                        type = str, \
-                        default = os.getcwd(), \
+        "Working directory. The default is the current working " \
+        "directory."
+    parser.add_argument("-d", "--workdir",
+                        type = str,
+                        default = os.getcwd(),
                         help = d_helpstr)
 
-    n_helpstr = "Number of processes to use. Default is one process."
-    parser.add_argument("-n", "--nproc", \
-                        type = int, \
-                        default = 1, \
+    l_helpstr = \
+        f"Log file. The default is: {LOG_FILE_DEFAULT}. The log " \
+        f"messages will be printed both to the log file and " \
+        f"the standard output."
+    parser.add_argument("-l", "--logfile",
+                        type = str,
+                        default = LOG_FILE_DEFAULT,
+                        help = l_helpstr)
+
+    n_helpstr = \
+        "Number of processes to use. The default is one process."
+    parser.add_argument("-n", "--nproc",
+                        type = int,
+                        default = 1,
                         help = n_helpstr)
 
-    # parse the arguments
+    # Parse the arguments
     args = parser.parse_args()
 
-
-    ###################### LOGGING CONFIGURATION ######################
-    
-    
-    logging.basicConfig(level = logging.INFO)
 
 
     ###################### GENERAL CONFIGURATION ######################
  
+
     
-    # UniProt IDs file
-    IDSFILE = args.idsfile
-    # load and parse the configuration
-    CONFIG = yaml.full_load(open(args.configfile, "r"))
-    # top-level working directory
-    _wd = args.workdir
-    # if only a directory name was passed, it will be a directory
+    # Get the UniProt IDs file
+    IDS_FILE = args.idsfile
+    
+    # Try to parse the configuration
+    try:
+
+        CONFIG = yaml.full_load(open(args.configfile, "r"))
+
+    # If something went wrong
+    except Exception as e:
+
+        # Warn the user
+        errstr = \
+            f"Could not parse the configuration file " \
+            f"{args.configfile}. Exception: {e}"
+        logger.error(errstr)
+
+        # Raise an exception
+        raise Exception(errstr)
+    
+    # Get the top-level working directory
+    top_wd = args.workdir
+    
+    # If only a directory name was passed, it will be a directory
     # created inside the current working directory
-    WD = os.path.abspath(_wd) if os.path.basename(_wd) != _wd \
-         else os.path.join(os.getcwd(), _wd)
-    # number of processes
+    WD = \
+        os.path.abspath(top_wd) if os.path.basename(top_wd) != top_wd \
+        else os.path.join(os.getcwd(), top_wd)
+
+    # Log file
+    LOG_FILE = args.logfile
+    
+    # Number of processes to be used when running
     NPROC = args.nproc
     
-    # LIRs
-    LIRCONFIG = CONFIG["lirs"]
-    LIRPSITESCSV = LIRCONFIG["outpsitessuffix"] + ".csv"
-    LCONTEXT = LIRCONFIG["lcontext"]
-    RCONTEXT = LIRCONFIG["rcontext"]
-    # variants
-    VARCSV = LIRCONFIG["variants"]["outsuffix"] + ".csv"
-    VARMD = LIRCONFIG["variants"]["outsuffix"] + ".md"
-    PRES2PMIM = LIRCONFIG["variants"]["substitutions"]
-    # iLIR
-    ILCONFIG = CONFIG["ilir"]
-    ILEXEC = ILCONFIG["executable"]
-    ILDIR = ILCONFIG["dirname"]
-    ILHTML = ILCONFIG["outsuffix"] + ".html"
-    ILCSV = ILCONFIG["outsuffix"] + ".csv"
-    # NetPhos
-    NPCONFIG = CONFIG["netphos"]
-    NPEXEC = NPCONFIG["executable"]
-    NPSCRIPT = resource_filename(\
-                    Requirement("phospho_iLIR"), \
+    # Configuration - LIRs
+    LIR_CONFIG = CONFIG["lirs"]
+    LIR_P_SITES_CSV = LIR_CONFIG["out_p_sites_suffix"] + ".csv"
+    L_CONTEXT = LIR_CONFIG["l_context"]
+    R_CONTEXT = LIR_CONFIG["r_context"]
+    
+    # Configuration - variants
+    VAR_CSV = LIR_CONFIG["variants"]["out_suffix"] + ".csv"
+    VAR_MD = LIR_CONFIG["variants"]["out_suffix"] + ".md"
+    PRES2PMIM = LIR_CONFIG["variants"]["substitutions"]
+    
+    # Configuration - iLIR
+    IL_CONFIG = CONFIG["ilir"]
+    IL_SERVER = IL_CONFIG["server"]
+    IL_DIR = IL_CONFIG["dir_name"]
+    IL_HTML = IL_CONFIG["out_suffix"] + ".html"
+    IL_CSV = IL_CONFIG["out_suffix"] + ".csv"
+    
+    # Configuration - NetPhos
+    NP_CONFIG = CONFIG["netphos"]
+    NP_EXEC = NP_CONFIG["executable"]
+    NP_SCRIPT = resource_filename(\
+                    Requirement("phospho_iLIR"),
                     "phospho_iLIR/process_netphos_output.py")
-    NPDIR = NPCONFIG["dirname"]
-    NPDAT = NPCONFIG["rawoutsuffix"] + ".dat"
-    NPCSV = NPCONFIG["procoutsuffix"] + ".csv"
-    # Spider3
-    SP3CONFIG = CONFIG["spider3"]
-    SP3RUN = SP3CONFIG["run"]
-    SP3EXEC = SP3CONFIG["executable"]
-    SP3DIR = SP3CONFIG["dirname"]
-    SP3CSV = SP3CONFIG["aggregation"]["outsuffix"] + ".csv"
-    # PsiPred
-    PSICONFIG = CONFIG["psipred"]
-    PSIRUN = PSICONFIG["run"]
-    PSIEXEC = PSICONFIG["executable"]
-    PSIDIR = PSICONFIG["dirname"]
-    PSICSV = PSICONFIG["aggregation"]["outsuffix"] + ".csv"
-    PSIHTML = PSICONFIG["aggregation"]["outsuffix"] + ".html"
-    CMAPS = PSICONFIG["aggregation"]["cmaps"]
-    PSIHTMLCMAPS = \
+    NP_DIR = NP_CONFIG["dir_name"]
+    NP_DAT = NP_CONFIG["raw_out_suffix"] + ".dat"
+    NP_CSV = NP_CONFIG["proc_out_suffix"] + ".csv"
+    
+    # Configuration - Spider3
+    SP3_CONFIG = CONFIG["spider3"]
+    SP3_RUN = SP3_CONFIG["run"]
+    SP3_EXEC = SP3_CONFIG["executable"]
+    SP3_DIR = SP3_CONFIG["dir_name"]
+    SP3_CSV = SP3_CONFIG["aggregation"]["out_suffix"] + ".csv"
+    
+    # Configuration - PsiPred
+    PSI_CONFIG = CONFIG["psipred"]
+    PSI_RUN = PSI_CONFIG["run"]
+    PSI_EXEC = PSI_CONFIG["executable"]
+    PSI_DIR = PSI_CONFIG["dir_name"]
+    PSI_CSV = PSI_CONFIG["aggregation"]["out_suffix"] + ".csv"
+    PSI_HTML = PSI_CONFIG["aggregation"]["out_suffix"] + ".html"
+    CMAPS = PSI_CONFIG["aggregation"]["cmaps"]
+    PSI_HTML_CMAPS = \
         [plt.get_cmap(cmap.strip()) for cmap in CMAPS.split(",")]
-    PSIHTMLCHUNKSIZE = PSICONFIG["aggregation"]["chunksize"]
+    PSI_HTML_CHUNK_SIZE = PSI_CONFIG["aggregation"]["chunk_size"]
     
-    # generate callables from the functions with the executables set
-    partsp3 = functools.partial(util.run_spider3, \
-                                executable = SP3EXEC)
-    partil = functools.partial(util.run_ilir, \
-                               executable = ILEXEC)
-    partpsi = functools.partial(util.run_psipred, \
-                                executable = PSIEXEC)
-    partnp = functools.partial(util.run_netphos, \
-                               executable = NPEXEC)
+    # Generate callables from the functions with the executables set
+    part_sp3 = functools.partial(util.run_spider3,
+                                 executable = SP3_EXEC)
+    part_psi = functools.partial(util.run_psipred,
+                                 executable = PSI_EXEC)
+    part_np = functools.partial(util.run_netphos,
+                                executable = NP_EXEC)
     
-    # use the same Python interpreter in use for the processing script
-    partnpscript = functools.partial(util.run_process_netphos_output, \
-                                     interpreter = sys.executable, \
-                                     script = NPSCRIPT)
+    # Use the same Python interpreter in use for the processing script
+    part_np_script = functools.partial(util.run_process_netphos_output,
+                                       interpreter = sys.executable,
+                                       script = NP_SCRIPT)
+
 
 
     ######################### RUN THE PIPELINE ########################
 
 
-    # change scheduler if you want to use threads or a single core
+
+    # Change the scheduler if you want to use threads or a single core
     with dask.config.set(scheduler = "processes"):
         
-        # create a local cluster with the desired number of workers
-        cluster = distributed.LocalCluster(n_workers = NPROC, \
-                                           silence_logs = "INFO", \
-                                           processes = True, \
+        # Create a local cluster with the desired number of workers
+        cluster = distributed.LocalCluster(n_workers = NPROC,
+                                           silence_logs = "INFO",
+                                           processes = True,
                                            threads_per_worker = 1)
         
-        # set a client to submit the jobs to
+        # Set a client to submit the jobs to
         client = distributed.Client(cluster)
         
-        # get the UniProt IDs 
-        upids = client.submit(util.get_uniprotids, IDSFILE)
+        # Try to get the UniProt IDs
+        try:
+            
+            up_ids = util.get_uniprot_ids(IDS_FILE)
 
-        # create a list for orphan futures that need to be collected
+        # If something went wrong
+        except Exception as e:
+
+            # Warn the user
+            errstr = \
+                f"Could not get the UniProt IDs from {IDS_FILE}. " \
+                f"Exception: {e}."
+            logging.error(errstr)
+
+            # Raise an exception
+            raise Exception(errstr)
+
+        # Create a list for orphan futures that need to be collected
         # before exiting
         futures = []
 
@@ -193,301 +248,476 @@ def main():
         #------------------------ UniProt IDs ------------------------#
 
         
-        # for each UniProt ID
-        for upid in upids.result():
+        # For each UniProt ID
+        for up_id in up_ids:
             
-            # create a path for the directory corresponding
+            # Set a path for the directory corresponding
             # to the current UniProt ID
-            upiddir = os.path.join(WD, upid)
+            up_id_dir = os.path.join(WD, up_id)
+
+            # Create the directory
+            os.makedirs(up_id_dir, exist_ok = True)
+
+            # Set the logging options
+            log_opts = \
+                {"log_prefix" : up_id,
+                 "log_file" : LOG_FILE}
             
-            # write the FASTA file corresponding to the
+            # Write the FASTA file corresponding to the
             # UniProt sequence
-            fasta = os.path.join(upiddir, upid + ".fasta")
-            fastaproc = client.submit(util.get_and_write_fasta, \
-                                      uniprotid = upid, \
-                                      fastapath = fasta).result()
+            fasta_path = os.path.join(up_id_dir, up_id + ".fasta")
+            fasta = \
+                client.submit(util.get_and_write_fasta,
+                              uniprot_id = up_id,
+                              fasta_path = fasta_path,
+                              **log_opts)
 
-            # get that sequence from the FASTA file
-            fullseq = client.submit(util.get_sequence_from_fasta, \
-                                    fastapath = fasta)
+            # Get that sequence from the FASTA file
+            full_seq = \
+                client.submit(util.get_sequence_from_fasta,
+                              fasta_path = fasta,
+                              **log_opts)
 
-            # run iLIR
-            ildir = os.path.join(upiddir, ILDIR)
-            ilhtml = os.path.join(ildir, upid + ILHTML)
-            ilcsv = os.path.join(ildir, upid + ILCSV)
-            ilproc = client.submit(partil, \
-                                   fasta = fasta, \
-                                   outhtml = ilhtml, \
-                                   outcsv = ilcsv, \
-                                   wd = ildir).result()
+
+            #----------------------- Run iLIR ------------------------#
+
+
+            # Set the path to the directory where iLIR will be run
+            il_dir = os.path.join(up_id_dir, IL_DIR)
+
+            # Set the path to the output HTML file that iLIR will write
+            il_html = os.path.join(il_dir, up_id + IL_HTML)
+
+            # Set the path to the output CSV file that iLIR will write
+            il_csv = os.path.join(il_dir, up_id + IL_CSV)
+
+            # Launch iLIR
+            il_csv = client.submit(util.run_ilir,
+                                   server = IL_SERVER,
+                                   fasta = fasta,
+                                   out_html = il_html,
+                                   out_csv = il_csv,
+                                   wd = il_dir,
+                                   **log_opts)
+
+
+            #---------------------- Run NetPhos ----------------------#
+
+
+            # Set the path to the directory where NetPhos will be run
+            np_dir = os.path.join(up_id_dir, NP_DIR)
+
+            # Set the path to the output .dat file that NetPhos
+            # will write
+            np_dat_path = os.path.join(np_dir, up_id + NP_DAT)
+
+            # Launch NetPhos
+            np_dat = client.submit(part_np,
+                                   fasta = fasta,
+                                   wd = np_dir,
+                                   out_dat = np_dat_path,
+                                   **log_opts)
             
-            # run NetPhos
-            npdir = os.path.join(upiddir, NPDIR)
-            npdat = os.path.join(npdir, upid + NPDAT)
-            npproc = client.submit(partnp, \
-                                   fasta = fasta, \
-                                   wd = npdir, \
-                                   outdat = npdat).result()
+            # Set the path to the output CSV file that the processing
+            # script will write
+            np_csv_path = os.path.join(np_dir, up_id + NP_CSV)
+
+            # Process the NetPhos .dat file
+            np_csv = client.submit(part_np_script,
+                                   np_out = np_dat,
+                                   out_csv = np_csv_path,
+                                   wd = np_dir,
+                                   **log_opts)
+
+
+            #--------------- Get LIRs and phosphosites ---------------#
             
-            # process NetPhos output
-            npcsv = os.path.join(npdir, upid + NPCSV)
-            npscriptproc = client.submit(partnpscript, \
-                                         npout = npdat, \
-                                         outcsv = npcsv, \
-                                         wd = npdir).result()
+
+            # Get the LIRs
+            lirs = client.submit(util.get_lirs_ilir,
+                                 full_seq = full_seq,
+                                 ilir_res = il_csv,
+                                 **log_opts)
             
-            # get the LIRs
-            lirs = client.submit(util.get_lirs_ilir, \
-                                 fullseq = fullseq, \
-                                 ilirres = ilcsv)
+            # Get the phosphorylation sites
+            p_sites = client.submit(util.get_phosphosites_netphos,
+                                    netphos_res = np_csv,
+                                    **log_opts)
+
+
+            #---------------------- Run Spider3 ----------------------#
             
-            # get the phosphorylation sites
-            psites = client.submit(util.get_phosphosites_netphos, \
-                                   netphosres = npcsv)
+
+            # If Spider3 needs to be run
+            if SP3_RUN:
+                
+                # Set the path to the directory where Spider3 will
+                # be run
+                sp3_dir = os.path.join(up_id_dir, SP3_DIR)
+
+                # Launch Spider3
+                futures.append(client.submit(part_sp3,
+                                             fasta = fasta,
+                                             out_prefix = up_id,
+                                             wd = sp3_dir,
+                                             **log_opts))
             
-            # if Spider3 needs to be run
-            if SP3RUN:
-                # launch Spider3
-                sp3dir = os.path.join(upiddir, SP3DIR)
-                futures.append(client.submit(partsp3, \
-                                             fasta = fasta, \
-                                             outprefix = upid, \
-                                             wd = sp3dir))
-            
-            # if PSIPRED needs to be run
-            if PSIRUN:
-                # launch PSIPRED
-                psidir = os.path.join(upiddir, PSIDIR)
-                futures.append(client.submit(partpsi, \
-                                             fasta = fasta, \
-                                             wd = psidir))
+            # If PSIPRED needs to be run
+            if PSI_RUN:
+                
+                # Set the path to the directory where PSIPRED will
+                # be run
+                psi_dir = os.path.join(up_id_dir, PSI_DIR)
+
+                # Launch PSIPRED
+                futures.append(client.submit(part_psi,
+                                             fasta = fasta,
+                                             out_prefix = up_id,
+                                             wd = psi_dir,
+                                             **log_opts))
 
 
             #------------------------- LIRs --------------------------#
             
             
-            # for each LIR
+            # For each LIR (use result() here since it is a very
+            # fast calculation and it does not block the workers
+            # for a long time)
             for lir in lirs.result():
 
-                # get the raw LIR attributes
-                rawlirseq, rawlirstart, rawlirend = lir
+                # Get the raw LIR attributes
+                raw_lir_seq, raw_lir_start, raw_lir_end = lir
                 
-                # get the extended LIR sequence
-                extlir = client.submit(util.get_extended_lir, \
-                                       lir = lir, \
-                                       fullseq = fullseq, \
-                                       lcontext = LCONTEXT, \
-                                       rcontext = RCONTEXT).result()
-                
-                # get the LIR phosphorylation sites
-                lirpsites = client.submit(util.get_lir_phosphosites, \
-                                          lir = extlir, \
-                                          psites = psites).result()
-                
-                # if no phosphorylation sites were found in the LIR,
-                # go on to the next LIR
-                if not lirpsites:
-                    continue
+                # Get the extended LIR sequence (use result() here
+                # since it is a very fast calculation and it does
+                # not block the workers for a long time)
+                ext_lir = \
+                    client.submit(util.get_extended_lir,
+                                  lir = lir,
+                                  full_seq = full_seq,
+                                  l_context = L_CONTEXT,
+                                  r_context = R_CONTEXT).result()
 
-                # get the LIR name, sequence, starting and ending point
-                lirname, lirseq, lirstart, lirend = extlir
+                # Get the LIR name, sequence, starting and ending point
+                lir_name, lir_seq, lir_start, lir_end = ext_lir
 
-                # create a path for the LIR directory
-                lirdir = os.path.join(upiddir, lirname)
+                # Set a path for the LIR directory
+                lir_dir = os.path.join(up_id_dir, lir_name)
+
+                # Create the directory
+                os.makedirs(lir_dir, exist_ok = True)
+
+                # Set the options for logging
+                lir_log_opts = \
+                    {"log_prefix" : f"{up_id}:{lir_name}",
+                     "log_file" : LOG_FILE}
+
+                # Set the path for the FASTA file which will contain
+                # the LIR sequence
+                lir_fasta_path = \
+                    os.path.join(lir_dir, lir_name + ".fasta")
+
+                # Generate a FASTA file with the LIR sequence
+                lir_fasta = client.submit(util.write_fasta,
+                                          sequence = lir_seq,
+                                          fasta_path = lir_fasta_path,
+                                          **lir_log_opts)
                 
-                # generate a FASTA file with the LIR sequence
-                lirfasta = os.path.join(lirdir, lirname + ".fasta")
-                lirfastaproc = client.submit(util.write_fasta, \
-                                             sequence = lirseq, \
-                                             fastapath = lirfasta)
-                
-                # get the LIR phosphomimetic variants
-                variants = client.submit(util.get_variants, \
-                                         lir = extlir, \
-                                         fullseq = fullseq, \
-                                         lirpsites = lirpsites, \
-                                         pres2pmim = PRES2PMIM).result()
-                
-                # write the LIR phosphorylation sites to a CSV file
-                lirpsitescsv = os.path.join(lirdir, lirname + LIRPSITESCSV)
+                # Get the LIR phosphorylation sites
+                lir_p_sites = client.submit(util.get_lir_phosphosites,
+                                            lir = ext_lir,
+                                            p_sites = p_sites,
+                                            **lir_log_opts)
+
+                # Set the path to the output CSV file that will contain
+                # the phosphorylation sites found in the LIR
+                lir_p_sites_csv = \
+                    os.path.join(lir_dir, lir_name + LIR_P_SITES_CSV)
+
+                # Write out the file
                 futures.append(\
-                    client.submit(util.write_lir_phosphosites_csv, \
-                                  lirpsites = lirpsites, \
-                                  outcsv = lirpsitescsv))
-
-                # write a CSV file with all the variants
-                varcsv = os.path.join(lirdir, lirname + VARCSV)
-                futures.append(\
-                    client.submit(util.write_variants_csv, \
-                                  variants = variants, \
-                                  outcsv = varcsv))
+                    client.submit(util.write_lir_phosphosites_csv,
+                                  lir_p_sites = lir_p_sites,
+                                  out_csv = lir_p_sites_csv,
+                                  **lir_log_opts))
                 
-                # write a Markdown file with all the variants
-                varmd = os.path.join(lirdir, lirname + VARMD)
-                futures.append(\
-                    client.submit(util.write_variants_markdown, \
-                                  variants = variants, \
-                                  outmd = varmd))
-                
-                # create dictionaries to store the results for
-                # all variants (output files) and empty lists to
-                # store the futures for each LIR
+                # Get the LIR phosphomimetic variants
+                variants = client.submit(util.get_variants,
+                                         up_id = up_id,
+                                         lir = ext_lir,
+                                         full_seq = full_seq,
+                                         lir_p_sites = lir_p_sites,
+                                         pres2pmim = PRES2PMIM,
+                                         **lir_log_opts)
 
-                varilres = \
-                    {"start" : lirstart, \
-                     "end" : lirend, \
-                     "results" : {upid : ilcsv}}
-                varilfutures = []
 
-                # if Spider3 needs to be run
-                if SP3RUN:
-                    varsp3res = \
-                        {"start" : lirstart, \
-                         "end" : lirend, \
-                         "results": \
-                            {upid : \
-                                os.path.join(sp3dir, upid + ".i1")}}
-                    varsp3futures = []
-
-                # if PSIPRED needs to be run
-                if PSIRUN:
-                    varpsires = \
-                        {"start" : lirstart, \
-                         "end" : lirend, \
-                         "results": \
-                            {upid : \
-                                os.path.join(psidir, upid + ".ss2")}}
-                    varpsifutures = []
-
-                
                 #--------------------- Variants ----------------------#
+
+
+                # Set the path to the output CSV file that will contain
+                # the variants
+                var_csv = os.path.join(lir_dir, lir_name + VAR_CSV)
+
+                # Write out the file
+                futures.append(\
+                    client.submit(util.write_variants_csv,
+                                  variants = variants,
+                                  out_csv = var_csv,
+                                  **lir_log_opts))
                 
+                # Set the path to the output MarkDown file that will
+                # contain the variants
+                var_md = os.path.join(lir_dir, lir_name + VAR_MD)
 
-                # for each LIR variant
-                for variant in variants:
+                # Write out the file
+                futures.append(\
+                    client.submit(util.write_variants_markdown,
+                                  variants = variants,
+                                  out_md = var_md,
+                                  **lir_log_opts))
+                
+                # Create dictionaries to store the results for
+                # all variants (output files)
+
+                # Add a dictionary for iLIR's results 
+                var_il_res = {up_id : il_csv}
+
+                # If Spider3 needs to be run
+                if SP3_RUN:
+
+                    # Add a dictionary for its results
+                    var_sp3_res = \
+                        {up_id : \
+                            {"results" : \
+                                os.path.join(sp3_dir, up_id + ".i1"),
+                             "start" : raw_lir_start,
+                             "end" : raw_lir_end}}
+
+                # If PSIPRED needs to be run
+                if PSI_RUN:
+
+                    # Add a dictionary for its results
+                    var_psi_res = \
+                        {up_id : \
+                            {"results" : \
+                                os.path.join(psi_dir, up_id + ".ss2"),
+                             "start" : raw_lir_start,
+                             "end" : raw_lir_end}}
+
+                # For each LIR variant (apart from the wild-type)
+                # (use result() here since it is a very fast
+                # calculation and it does not block the workers
+                # for a long time)
+                for variant in variants.result()[1:]:
                     
-                    # get the variant name, sequences, starting
-                    # and ending point, mutations present and
+                    # Get the variant name, partial and full sequence,
+                    # starting and ending point, mutations present and
                     # positions of such mutations in the sequence
-                    varname, varseq, varfullseq, varstart, \
-                        varend, varmuts, varpos = variant
+                    var_name, var_seq, var_full_seq, var_start, \
+                        var_end, var_muts, var_pos = variant
                     
-                    # create a path for the variant directory
-                    vardir = os.path.join(lirdir, varname)
-                    
-                    # generate a FASTA file with the variant sequence
-                    # within the context of the full UniProt sequence
-                    varfasta = os.path.join(vardir, varname + ".fasta")
-                    varfastaproc = \
-                        client.submit(util.write_fasta, \
-                                      sequence = varfullseq, \
-                                      fastapath = varfasta).result()                   
-                    
-                    # run iLIR
-                    varildir = os.path.join(vardir, ILDIR)
-                    varilhtml = os.path.join(varildir, varname + ILHTML)
-                    varilcsv = os.path.join(varildir, varname + ILCSV)
-                    varilres["results"][varname] = varilcsv
-                    varilfutures.append(\
-                        client.submit(partil, \
-                                      fasta = varfasta, \
-                                      outhtml = varilhtml, \
-                                      outcsv = varilcsv, \
-                                      wd = varildir))
+                    # Set a path for the variant directory
+                    var_dir = os.path.join(lir_dir, var_name)
 
-                    # if Spider3 needs to be run
-                    if SP3RUN:                  
-                        # run Spider3
-                        varsp3dir = os.path.join(vardir, SP3DIR)
-                        varsp3res["results"][varname] = \
-                            os.path.join(varsp3dir, varname + ".i1")
-                        varsp3futures.append(\
-                            client.submit(partsp3, \
-                                          fasta = varfasta, \
-                                          outprefix = varname, \
-                                          wd = varsp3dir))
+                    # Create the directory
+                    os.makedirs(var_dir, exist_ok = True)
 
-                    # if PSIPRED needs to be run
-                    if PSIRUN:
-                        # run PSIPRED
-                        varpsidir = os.path.join(vardir, PSIDIR)
-                        varpsires["results"][varname] = \
-                            os.path.join(varpsidir, varname + ".ss2")
-                        varpsifutures.append(\
-                            client.submit(partpsi, \
-                                          fasta = varfasta, \
-                                          wd = varpsidir))
+                    # Set the options for logging
+                    var_log_opts = \
+                        {"log_prefix" : \
+                            f"{up_id}:{lir_name}:{var_name}",
+                         "log_file" : \
+                            LOG_FILE}
+                    
+                    # Set the path to a FASTA file with the variant
+                    # sequence within the context of the full UniProt
+                    # sequence
+                    var_fasta_path = \
+                        os.path.join(var_dir, var_name + ".fasta")
+
+                    # Write the file
+                    var_fasta = \
+                        client.submit(util.write_fasta,
+                                      sequence = var_full_seq,
+                                      fasta_path = var_fasta_path,
+                                      **var_log_opts)                 
+                    
+                    # Set the path to the directory that will contain
+                    # the results from iLIR for the current variant
+                    var_il_dir = os.path.join(var_dir, IL_DIR)
+
+                    # Set the path to the the output HTML file that
+                    # will contain the results from iLIR for the
+                    # current variant
+                    var_il_html = \
+                        os.path.join(var_il_dir, var_name + IL_HTML)
+
+                    # Set the path to the the output CSV file that
+                    # will contain the results from iLIR for the
+                    # current variant
+                    var_il_csv = \
+                        os.path.join(var_il_dir, var_name + IL_CSV)
+
+                    # Launch iLIR
+                    var_il_res[var_name] = \
+                        client.submit(util.run_ilir,
+                                      server = IL_SERVER,
+                                      fasta = var_fasta,
+                                      out_html = var_il_html,
+                                      out_csv = var_il_csv,
+                                      wd = var_il_dir,
+                                      **var_log_opts)
+
+                    # If Spider3 needs to be run
+                    if SP3_RUN:
+
+                        # Set the path to the directory that will
+                        # contain the results from Spider3 for
+                        # the current variant
+                        var_sp3_dir = os.path.join(var_dir, SP3_DIR)
+
+                        # Launch Spider3
+                        var_sp3_res[var_name] = {}
+                        var_sp3_res[var_name]["results"] = \
+                            client.submit(part_sp3,
+                                          fasta = var_fasta,
+                                          out_prefix = var_name,
+                                          wd = var_sp3_dir,
+                                          **var_log_opts)
+
+                    # If PSIPRED needs to be run
+                    if PSI_RUN:
+
+                        # Set the path to the directory that will
+                        # contain the results from PSIPRED for
+                        # the current variant
+                        var_psi_dir = os.path.join(var_dir, PSI_DIR)
+
+                        # Launch PSIPRED
+                        var_psi_res[var_name] = {}
+                        var_psi_res[var_name]["results"] = \
+                            client.submit(part_psi,
+                                          fasta = var_fasta,
+                                          out_prefix = var_name,
+                                          wd = var_psi_dir,
+                                          **var_log_opts)
 
            
                 #------------------- Aggregation ---------------------#
        
 
-                # if Spider3 was run
-                if SP3RUN:
-                    # gather Spider3 results for all variants
-                    client.gather(varsp3futures)
-                    sp3ssdfs = client.submit(\
-                                    util.aggregate_ss_results, \
-                                    upid = upid, \
-                                    ssres = varsp3res, \
-                                    source = "spider3", \
-                                    groupby = "variant")
-                    
-                    # write a summary CSV file of the Spider3 results
-                    outsp3csv = os.path.join(lirdir, lirname + SP3CSV)
-                    futures.append(client.submit(\
-                                   util.write_ss_csv, \
-                                   ssdfs = sp3ssdfs, \
-                                   wtseq = lirseq, \
-                                   start = lirstart, \
-                                   end = lirend, \
-                                   outcsv = outsp3csv))
+                # If Spider3 was run
+                if SP3_RUN:
 
-                # if PSIPRED was run
-                if PSIRUN:
-                    # gather PSIPRED results for all variants
-                    client.gather(varpsifutures)
-                    psissdfs = client.submit(\
-                                    util.aggregate_ss_results, \
-                                    upid = upid, \
-                                    ssres = varpsires, \
-                                    source = "psipred", \
-                                    groupby = "variant")
+                    # Aggregate the results
+                    sp3ss_dfs = client.submit(\
+                                    util.aggregate_ss_results,
+                                    up_id = up_id,
+                                    source = "Spider3",
+                                    groupby = "variant",
+                                    **{**var_sp3_res, **lir_log_opts})
                     
-                    # write a summary CSV file of the PSIPRED results
-                    outpsicsv = os.path.join(lirdir, lirname + PSICSV)
+                    # Set the path to the output CSV file that will
+                    # contain the Spider3 results for all the variants
+                    out_sp3_csv = \
+                        os.path.join(lir_dir, lir_name + SP3_CSV)
+
+                    # Write the file
                     futures.append(client.submit(\
-                                   util.write_ss_csv, \
-                                   ssdfs = psissdfs, \
-                                   wtseq = lirseq, \
-                                   start = lirstart, \
-                                   end = lirend, \
-                                   outcsv = outpsicsv))
+                                   util.write_ss_csv,
+                                   ss_dfs = sp3ss_dfs,
+                                   wt_seq = lir_seq,
+                                   start = lir_start,
+                                   end = lir_end,
+                                   out_csv = out_sp3_csv,
+                                   source = "Spider3",
+                                   **lir_log_opts))
+
+                # If PSIPRED was run
+                if PSI_RUN:
+
+                    # Aggregate the results
+                    psiss_dfs = client.submit(\
+                                    util.aggregate_ss_results,
+                                    up_id = up_id,
+                                    source = "PSIPRED",
+                                    groupby = "variant",
+                                    **{**var_psi_res, **lir_log_opts})
                     
-                    # write a summary HTML file of the PSIPRED results
-                    outpsihtml = os.path.join(lirdir, lirname + PSIHTML)
-                    futures.append(client.submit(\
-                                   util.write_psipred_html, \
-                                   psipreddfs = psissdfs, \
-                                   start = lirstart, \
-                                   end = lirend, \
-                                   outhtml = outpsihtml, \
-                                   cmaps = PSIHTMLCMAPS, \
-                                   chunksize = PSIHTMLCHUNKSIZE))
+                    # Set the path to the output CSV file that will
+                    # contain the PSIPRED results for all the variants
+                    out_psi_csv = \
+                        os.path.join(lir_dir, lir_name + PSI_CSV)
 
-                # gather iLIR results for all variants
-                client.gather(varilfutures)
-                # write a summary CSV file of the iLIR results
-                outilcsv = os.path.join(lirdir, lirname + ILCSV)
-                futures.append(client.submit(\
-                               util.write_ilir_csv, \
-                               ilirres = varilres, \
-                               lirstart = rawlirstart, \
-                               lirend = rawlirend, \
-                               outcsv = outilcsv))
+                    # Write the file
+                    futures.append(\
+                        client.submit(\
+                            util.write_ss_csv,
+                            ss_dfs = psiss_dfs,
+                            wt_seq = lir_seq,
+                            start = lir_start,
+                            end = lir_end,
+                            out_csv = out_psi_csv,
+                            source = "PSIPRED",
+                            **lir_log_opts))
+                    
+                    # Set the path to the output HTML file that will
+                    # contain the PSIPRED results for all the variants
+                    out_psi_html = \
+                        os.path.join(lir_dir, lir_name + PSI_HTML)
 
-        # gather all orphan futures still running
+                    # Write the file
+                    futures.append(\
+                        client.submit(\
+                            util.write_psipred_html,
+                            psipred_dfs = psiss_dfs,
+                            start = lir_start,
+                            end = lir_end,
+                            out_html = out_psi_html,
+                            cmaps = PSI_HTML_CMAPS,
+                            chunk_size = PSI_HTML_CHUNK_SIZE,
+                            **lir_log_opts))
+
+                
+                # Set the path to the output CSV file that will contain
+                # the iLIR results for all the variants
+                out_il_csv = os.path.join(lir_dir, lir_name + IL_CSV)
+                
+                # Write the file
+                futures.append(\
+                    client.submit(\
+                        util.write_ilir_csv,
+                        lir_start = raw_lir_start,
+                        lir_end = raw_lir_end,
+                        out_csv = out_il_csv,
+                        **{**var_il_res, **lir_log_opts}))
+
+
+        # Gather all orphan futures still running
         client.gather(futures)
 
-if __name__ == "__main__":
-    main()
+
+
+def main():
+
+    # Configure the logging
+    logging.basicConfig(level = logging.INFO)
+
+    # Get the module logger
+    logger = logging.getLogger(__name__)
+
+    # Try running the pipeline
+    try:
+        
+        run(logger)
+
+    # If something went wrong
+    except Exception as e:
+
+        # Warn the user
+        errstr = \
+            f"Could not run phospho_iLIR. Exception: {e}"
+        logging.error(errstr)
+
+        # Exit
+        sys.exit(errstr)
