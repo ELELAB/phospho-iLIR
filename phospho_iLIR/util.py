@@ -234,6 +234,18 @@ def run_ilir(server,
     # Return the output CSV file
     return out_csv
 
+def custom_list(log_prefix = "",
+                log_file = None,
+                lirs_list = ""):
+
+    # Reset the distributed.worker logger
+    logger = reset_worker_logger(log_file)
+
+    # Inform the user that a custom list of LIRs has been provided
+    infostr = \
+        f"{log_prefix}:A custom LIRs list ({lirs_list}) " \
+        f"has been provided by the user. The iLIR run will be skipped."
+    logger.info(infostr)
 
 def run_netphos(executable,
                 fasta,
@@ -565,8 +577,9 @@ def get_sequence_from_fasta(fasta_path,
 def get_lirs_ilir(ilir_res,
                   full_seq,
                   log_prefix = "",
-                  log_file = None):
-    """Parse the results from iLIR and return the list of LIRs
+                  log_file = None,
+                  source = ""):
+    """Parse the results from iLIR or custom csv and return the list of LIRs
     found.
     """
 
@@ -576,7 +589,7 @@ def get_lirs_ilir(ilir_res,
     # Reset the distributed.worker logger
     logger = reset_worker_logger(log_file)
 
-    # Try to read the data frame containing the iLIR results
+    # Try to read the data frame containing the iLIR or the custom LIRs results
     try:
 
         il_df = pd.read_csv(ilir_res,
@@ -588,17 +601,17 @@ def get_lirs_ilir(ilir_res,
 
         # Warn the user
         errstr = \
-            f"{log_prefix}:Could not load the iLIR results " \
+            f"{log_prefix}:Could not load the {source} results " \
             f"from {ilir_res}."
         logger.error(errstr)
 
         # Return an empty list
         return []
 
-    # Inform the user that the iLIR results have been
+    # Inform the user that the iLIR results or the custom LIRs have been
     # successfully loaded
     infostr = \
-        f"The iLIR results have been successfully loaded " \
+        f"The {source} results have been successfully loaded " \
         f"from {ilir_res}."
     logger.info(infostr)
     
@@ -623,7 +636,7 @@ def get_lirs_ilir(ilir_res,
         ilir_seq = full_seq[start-2:end]
         
         # If it does not correspond to the sequence found
-        # by iLIR (it assuments iLIR was run with the
+        # by iLIR or in the custom list (it assuments iLIR was run with the
         # complete FASTA sequence)
         if not ilir_seq == row["LIR sequence"]:
             
@@ -631,9 +644,9 @@ def get_lirs_ilir(ilir_res,
             errstr = \
                 f"{log_prefix}:The LIR found at position " \
                 f"{start-2}-{end} in the sequence does not " \
-                f"correspond to the one found in the iLIR results. " \
+                f"correspond to the one found in the {source} results. " \
                 f"Please check both the complete protein " \
-                f"sequence and the iLIR output CSV file " \
+                f"sequence and the {source} output CSV file " \
                 f"for inconsistencies."
             logger.error(errstr)
             
@@ -648,12 +661,11 @@ def get_lirs_ilir(ilir_res,
     # parsed
     infostr = \
         f"{log_prefix}:The LIR motifs have been successfully " \
-        f"retrieved from the iLIR results."
+        f"retrieved from the {source} results."
     logger.info(infostr)
     
     # Return the list of LIRs
     return lirs
-
 
 def get_phosphosites_netphos(netphos_res,
                              log_prefix = "",
