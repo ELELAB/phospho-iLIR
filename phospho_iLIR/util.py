@@ -247,6 +247,7 @@ def custom_list(log_prefix = "",
         f"has been provided by the user. The iLIR run will be skipped."
     logger.info(infostr)
 
+
 def run_netphos(executable,
                 fasta,
                 wd,
@@ -667,6 +668,7 @@ def get_lirs_ilir(ilir_res,
     # Return the list of LIRs
     return lirs
 
+
 def get_phosphosites_netphos(netphos_res,
                              log_prefix = "",
                              log_file = None):
@@ -827,7 +829,10 @@ def get_lir_phosphosites(lir,
             f"{log_prefix}:{len(lir_p_sites)} phosphorylation " \
             f"sites found in {start+1}-{seq}-{end}."
         logger.info(infostr)
-        
+
+    # If there is at least one phospho site print its position
+    if len(lir_p_sites) != 0:
+       
         # Real absolute position of a phosphosites is shifted by 1, 
         # since Python indexing starts from 0 but sequence numbering
         # starts from 1
@@ -868,11 +873,17 @@ def get_variants(up_id,
         infostr = \
             f"{log_prefix}:Since no phosphorylation sites were " \
             f"found in {start+1}-{seq}-{end}, no variants " \
-            f"will be generated for this LIR."
+            f"will be generated for this LIR. The'variants' file "\
+            f"will contain the WT LIR only."
         logger.info(infostr)
 
-        # Return an empty list
-        return []
+        # Add the WT LIR to the variants list
+        variants = []
+        lir = (up_id,seq,full_seq,start,end,[],[])
+        variants.append(lir)
+
+        # Return the variants list containing the WT only
+        return variants
     
     # Get the full protein sequence before and after the LIR
     before_lir, after_lir = full_seq[:start], full_seq[end:]
@@ -1258,17 +1269,15 @@ def write_variants_csv(variants,
     # Reset the distributed.worker logger
     logger = reset_worker_logger(log_file)
 
-    # If no variants were passed
-    if not variants:
+    # If only the WT LIR has been generated
+    if len(variants) == 1:
 
-        # Inform the user that no file will be written
+        # Inform the user that the file will contain the WT only
         infostr = \
             f"{log_prefix}:Since no variants were generated, " \
-            f"no CSV file for the variants will be written."
+            f"the CSV file for the variants will contain the " \
+            f"WT LIR only."
         logger.info(infostr)
-
-        # Return
-        return
 
     # Function to join list elements into a string
     list2str = lambda x: ",".join(map(str, x))
@@ -1322,16 +1331,14 @@ def write_variants_markdown(variants,
     logger = reset_worker_logger(log_file)
 
     # If no variants were passed
-    if not variants:
+    if len(variants) == 1:
 
-        # Inform the user that no file will be written
+        # Inform the user that the file will contain the WT only
         infostr = \
             f"{log_prefix}:Since no variants were generated, " \
-            f"no MarkDown file for the variants will be written."
+            f"the Markdown file for the variants will contain the " \
+            f"WT LIR only."
         logger.info(infostr)
-
-        # Return
-        return
 
     # Open the output file
     with open(out_md, "w") as o:
@@ -1682,4 +1689,133 @@ def write_psipred_html(psipred_dfs,
     infostr = \
         f"{log_prefix}:The aggregated PSIPRED results for the " \
         f"variants have been successfully written to {out_html}."
+    logger.info(infostr)
+
+def write_SLIMfast_input(uniprot_id,
+                         l_context,
+                         r_context,
+                         log_prefix = "",
+                         log_file = None):
+
+    """Write two csv files to use as inputs for SLIMfast.
+    One called uniprot_id_SLIMfast_input.csv that contains the 
+    LIR extended sequences and one called 
+    uniprot_id_SLIMfast_input_core.csv that contains only the core LIR
+    sequences.
+    """
+
+    # Reset the distributed.worker logger
+    logger = reset_worker_logger(log_file)
+
+    #define column new names
+    col_names = ["uniprot_ID",
+             "slim_sequence",
+             "slim_start",
+             "slim_end",
+             "mutations",
+             "position"]
+
+    #get the list of the lir folders
+    matches = [f for f in os.listdir(f"{uniprot_id}") if "lir_" in f]
+
+    #create SLIMfast input csv with header
+    with open(uniprot_id+"/"+ uniprot_id +\
+              "_SLIMfast_input.csv", "w") as csv:
+        csv.write("uniprot_ID,slim_type,slim_start,"\
+                  "slim_sequence,slim_end" + "\n")
+
+        #append the wt info from every lir folder to the SLIMfast input
+        for folder in matches:
+            try:
+                #read first two lines from csv, 
+                #add LIR column and retain only last row
+                data = pd.read_csv(uniprot_id+"/"+folder+"/"+folder+
+                                   "-variants.csv",
+                                   names=col_names,
+                                   skiprows=1,
+                                   nrows=1)
+
+                data["slim_type"] = "LIR"
+                output = data.tail(1)
+
+                #append the wt info without index
+                output.to_csv(csv,
+                              mode="a",
+                              columns=["uniprot_ID",
+                                       "slim_type",
+                                       "slim_start",
+                                       "slim_sequence",
+                                       "slim_end"],
+                              header=False,
+                              index=False)
+
+            #if the -variant.csv file is not present print error and 
+            #continue
+            except FileNotFoundError:
+                infostr = \
+                    f"{log_prefix}:Cannot find {folder}-variants.csv. "\
+                    f"Skipping..."
+                logger.info(infostr)
+                continue
+    # Inform the user that the aggregated results were
+    # successfully written to the output file
+    infostr = \
+        f"{log_prefix}:The SLIMfast compatible input file for the "\
+        f"Uniprot ID : {uniprot_id} has been successfully written to "\
+        f"{uniprot_id}/{uniprot_id}_SLIMfast_input.csv."
+    logger.info(infostr)
+
+    #create SLIMfast core csv with header
+    with open(uniprot_id+"/"+ uniprot_id +
+              "_SLIMfast_input_core.csv", "w") as csv:
+        csv.write("uniprot_ID,slim_type,slim_start,"\
+                  "slim_sequence,slim_end" + "\n")
+
+        #append the wt info from every lir folder to the SLIMfast input
+        for folder in matches:
+            try:
+                #read first two lines from csv, 
+                #add LIR column and retain only last row
+                data = pd.read_csv(uniprot_id+"/"+folder+"/"+folder+
+                                   "-variants.csv",
+                                   names=col_names,
+                                   skiprows=1,
+                                   nrows=1)
+
+                data["slim_type"] = "LIR"
+                output = data.tail(1)
+
+                #change the start, end and sequence values to match 
+                #only the core LIR motif
+                output["slim_start"] = output["slim_start"]+l_context
+                output["slim_end"] = output["slim_end"]-r_context
+                output["slim_sequence"] = output["slim_sequence"].str.slice(start = l_context,
+                                                                            stop = l_context+4)
+
+                #append the wt info without index
+                output.to_csv(csv,
+                              mode="a",
+                              columns=["uniprot_ID",
+                                       "slim_type",
+                                       "slim_start",
+                                       "slim_sequence",
+                                       "slim_end"],
+                              header=False,
+                              index=False)
+
+            #if the -variant.csv file is not present print error and 
+            #continue
+            except FileNotFoundError:
+                infostr = \
+                    f"{log_prefix}:Cannot find {folder}-variants.csv. "\
+                    f"Skipping..."
+                logger.info(infostr)
+                continue
+
+    # Inform the user that the aggregated results were
+    # successfully written to the output file
+    infostr = \
+        f"{log_prefix}:The SLIMfast compatible  core input file for "\
+        f"the Uniprot ID : {uniprot_id} has been successfully written "\
+        f"to {uniprot_id}/{uniprot_id}_SLIMfast_core.csv."
     logger.info(infostr)
