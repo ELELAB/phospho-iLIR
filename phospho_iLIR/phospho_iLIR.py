@@ -101,6 +101,14 @@ def run(logger):
                         default = 1,
                         help = n_helpstr)
 
+    lir_helpstr = \
+        "Input file containing the user provided LIRs. If this option "\
+        "is given the iLIR step will be skipped."
+    parser.add_argument("--lirs",
+                        type = str,
+                        dest = "lirs",
+                        help = lir_helpstr)
+
     # Parse the arguments
     args = parser.parse_args()
 
@@ -281,25 +289,34 @@ def run(logger):
 
             #----------------------- Run iLIR ------------------------#
 
+            # if a user list of LIRs has not been provided run iLIR
+            if args.lirs is None:
 
-            # Set the path to the directory where iLIR will be run
-            il_dir = os.path.join(up_id_dir, IL_DIR)
+                # Set the path to the directory where iLIR will be run
+                il_dir = os.path.join(up_id_dir, IL_DIR)
 
-            # Set the path to the output HTML file that iLIR will write
-            il_html = os.path.join(il_dir, up_id + IL_HTML)
+                # Set the path to the output HTML file that 
+                # iLIR will write
+                il_html = os.path.join(il_dir, up_id + IL_HTML)
 
-            # Set the path to the output CSV file that iLIR will write
-            il_csv = os.path.join(il_dir, up_id + IL_CSV)
+                # Set the path to the output CSV file that iLIR will 
+                # write
+                il_csv = os.path.join(il_dir, up_id + IL_CSV)
 
-            # Launch iLIR
-            il_csv = client.submit(util.run_ilir,
-                                   server = IL_SERVER,
-                                   fasta = fasta,
-                                   out_html = il_html,
-                                   out_csv = il_csv,
-                                   wd = il_dir,
-                                   **log_opts)
+                # Launch iLIR
+                il_csv = client.submit(util.run_ilir,
+                                       server = IL_SERVER,
+                                       fasta = fasta,
+                                       out_html = il_html,
+                                       out_csv = il_csv,
+                                       wd = il_dir,
+                                       **log_opts)
 
+            #if a user list of LIRS has been provided do not run iLIR
+            else:
+                il_csv = args.lirs
+                util.custom_list(**log_opts,
+                                 lirs_list = args.lirs)
 
             #---------------------- Run NetPhos ----------------------#
 
@@ -333,11 +350,21 @@ def run(logger):
             #--------------- Get LIRs and phosphosites ---------------#
             
 
-            # Get the LIRs
-            lirs = client.submit(util.get_lirs_ilir,
-                                 full_seq = full_seq,
-                                 ilir_res = il_csv,
-                                 **log_opts)
+            # Get the LIRs from the custom list of LIRs if provided
+            if args.lirs:
+                lirs = client.submit(util.get_lirs_ilir,
+                                     full_seq = full_seq,
+                                     ilir_res = il_csv,
+                                     source = args.lirs,
+                                     **log_opts)
+
+            else:
+                # Get the LIRs from iLIR results
+                lirs = client.submit(util.get_lirs_ilir,
+                                     full_seq = full_seq,
+                                     ilir_res = il_csv,
+                                     source = "iLIR",
+                                     **log_opts)
             
             # Get the phosphorylation sites
             p_sites = client.submit(util.get_phosphosites_netphos,
