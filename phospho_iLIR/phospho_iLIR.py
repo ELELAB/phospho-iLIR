@@ -109,6 +109,7 @@ def run(logger):
                         dest = "lirs",
                         help = lir_helpstr)
 
+
     # Parse the arguments
     args = parser.parse_args()
 
@@ -317,6 +318,7 @@ def run(logger):
                 il_csv = args.lirs
                 util.custom_list(**log_opts,
                                  lirs_list = args.lirs)
+
 
             #---------------------- Run NetPhos ----------------------#
 
@@ -719,6 +721,16 @@ def run(logger):
                         out_csv = out_il_csv,
                         **{**var_il_res, **lir_log_opts}))
 
+            #---------------- SLIMfast compatibile  -------------------#
+
+            # Write the SLIMfast compatible input file
+            futures.append(\
+                client.submit(\
+                    util.write_SLIMfast_input,
+                    uniprot_id = up_id,
+                    l_context = L_CONTEXT,
+                    r_context = R_CONTEXT,
+                    **log_opts))
 
         # Gather all orphan futures still running
         client.gather(futures)
