@@ -1,0 +1,62 @@
+distributed.worker:INFO:Q13137:A custom LIRs list (lirs.csv) has been provided by the user. The iLIR run will be skipped.
+distributed.worker:INFO:Q13137:The FASTA sequence of the protein with UniProt ID Q13137 has been successfully retrieved from https://www.uniprot.org/uniprot/Q13137.fasta.
+distributed.worker:INFO:Q13137:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta.
+distributed.worker:INFO:Q13137:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta.
+distributed.worker:INFO:Sequence successfully retrieved from /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta.
+distributed.worker:INFO:Running NetPhos on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta. The output will be written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/netphos/Q13137-netphos.dat.
+distributed.worker:INFO:Running NetPhos on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta. The output will be written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/netphos/Q13137-netphos.dat.
+distributed.worker:INFO:NetPhos ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta.
+distributed.worker:INFO:NetPhos ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/Q13137.fasta.
+distributed.worker:INFO:The lirs.csv results have been successfully loaded from lirs.csv.
+distributed.worker:INFO:Q13137:The LIR motifs have been successfully retrieved from the lirs.csv results.
+distributed.worker:INFO:Q13137:/home/mattia/.cache/Python-Eggs/phospho_iLIR-0.0.1-py3.8.egg-tmp/phospho_iLIR/process_netphos_output.py ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/netphos/Q13137-netphos.dat.
+distributed.worker:INFO:Q13137:/home/mattia/.cache/Python-Eggs/phospho_iLIR-0.0.1-py3.8.egg-tmp/phospho_iLIR/process_netphos_output.py ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/netphos/Q13137-netphos.dat.
+distributed.worker:INFO:Q13137:lir_124_144:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:2 phosphorylation sites found in 125-FRPENEEDILVVTTQGEVEE-144.
+distributed.worker:INFO:Q13137:lir_124_144:Phosphorylation sites found at positions: 137 (T), 138 (T).
+distributed.worker:INFO:Q13137:lir_124_144:The data frame containing the phosphorylation sites has been successfully created.
+distributed.worker:INFO:Q13137:lir_124_144:The data frame containing the phosphorylation sites has been successfully created.
+distributed.worker:INFO:Q13137:lir_124_144:The data frame containing the phosphorylation sites has been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-phosphosites.csv.
+distributed.worker:INFO:Q13137:lir_124_144:The data frame containing the phosphorylation sites has been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-phosphosites.csv.
+distributed.worker:INFO:Q13137:lir_124_144:Variant var_T138E:              125-FRPENEEDILVVTEQGEVEE-144
+distributed.worker:INFO:Q13137:lir_124_144:Variant var_T137E:              125-FRPENEEDILVVETQGEVEE-144
+distributed.worker:INFO:Q13137:lir_124_144:Variant var_T137E_T138E:        125-FRPENEEDILVVEEQGEVEE-144
+distributed.worker:INFO:Q13137:lir_124_144:The variants have been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-variants.md.
+distributed.worker:INFO:Q13137:lir_124_144:The variants have been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-variants.md.
+distributed.worker:INFO:Q13137:lir_124_144:The variants have been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-variants.csv.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T138E/var_T138E.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T138E/var_T138E.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:The iLIR results have been successfully retrieved from https://ilir.warwick.ac.uk/lirpredict.php.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:The raw iLIR results have ben written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T138E/ilir/var_T138E-ilir.html.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:The results from iLIR (server: warwick) have been successfully parsed.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:iLIR results successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T138E/ilir/var_T138E-ilir.csv.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E_T138E/var_T137E_T138E.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E_T138E/var_T137E_T138E.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:The FASTA file /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E/var_T137E.fasta has been successfully written.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T138E/var_T138E.fasta.
+distributed.worker:INFO:Q13137:lir_124_144:var_T138E:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T138E/var_T138E.fasta.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:The iLIR results have been successfully retrieved from https://ilir.warwick.ac.uk/lirpredict.php.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:The raw iLIR results have ben written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E/ilir/var_T137E-ilir.html.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:The results from iLIR (server: warwick) have been successfully parsed.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:iLIR results successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E/ilir/var_T137E-ilir.csv.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E/var_T137E.fasta.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E/var_T137E.fasta.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:The iLIR results have been successfully retrieved from https://ilir.warwick.ac.uk/lirpredict.php.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:The raw iLIR results have ben written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E_T138E/ilir/var_T137E_T138E-ilir.html.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:The results from iLIR (server: warwick) have been successfully parsed.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:iLIR results successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E_T138E/ilir/var_T137E_T138E-ilir.csv.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E_T138E/var_T137E_T138E.fasta.
+distributed.worker:INFO:Q13137:lir_124_144:var_T137E_T138E:Spider3 ran successfully on /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/var_T137E_T138E/var_T137E_T138E.fasta.
+distributed.worker:INFO:Q13137:lir_124_144:The iLIR results for the variants have been successfully aggregated.
+distributed.worker:INFO:Q13137:lir_124_144:The aggregated iLIR results for the variants have been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-ilir.csv.
+distributed.worker:INFO:Q13137:lir_124_144:The secondary structure predictions from Spider3 for the variants have been successfully aggregated (grouped by: variant).
+distributed.worker:INFO:Q13137:lir_124_144:The secondary structure predictions from Spider3 for the variants have been successfully aggregated (grouped by: variant).
+distributed.worker:INFO:Q13137:The SLIMfast compatible input file for the Uniprot ID : Q13137 has been successfully written to Q13137/Q13137_SLIMfast_input.csv.
+distributed.worker:INFO:Q13137:The SLIMfast compatible  core input file for the Uniprot ID : Q13137 has been successfully written to Q13137/Q13137_SLIMfast_core.csv.
+distributed.worker:INFO:Q13137:lir_124_144:The aggregated Spider3 results for the variants have been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-spider3.csv.
+distributed.worker:INFO:Q13137:lir_124_144:The aggregated Spider3 results for the variants have been successfully written to /data/user/mattia/scripts/phosphoILIR/Issue16/phospho-iLIR/examples/custom_lirs_list/Q13137/lir_124_144/lir_124_144-spider3.csv.
+distributed.worker:INFO:Stopping worker at tcp://127.0.0.1:40359
+distributed.worker:INFO:Stopping worker at tcp://127.0.0.1:40359
+distributed.worker:INFO:Connection to scheduler broken. Closing without reporting. ID: Worker-09032649-4def-4239-a6ff-2853f9960b4a Address tcp://127.0.0.1:40359 Status: Status.closing
+distributed.worker:INFO:Connection to scheduler broken. Closing without reporting. ID: Worker-09032649-4def-4239-a6ff-2853f9960b4a Address tcp://127.0.0.1:40359 Status: Status.closing

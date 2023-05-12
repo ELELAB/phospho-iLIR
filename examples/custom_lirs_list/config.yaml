@@ -1,0 +1,136 @@
+
+#------------------------------- LIRs --------------------------------#
+
+
+
+# Configuration affecting the single LIRs
+lirs:
+  
+  # Suffix of the file name(s) containing the phosphorylation
+  # sites in the LIR
+  out_p_sites_suffix: -phosphosites
+  
+  # Number of flanking residues to be considered on the left
+  # of the LIR
+  l_context: 8 
+  
+  # Number of flanking residues to be considered on the right
+  # of the LIR
+  r_context: 8
+
+  # Configuration affecting the LIR variants
+  variants:
+    
+    # Suffix of the file names(s) containing all variants
+    out_suffix: -variants
+    
+    # Residues used to replace those in phosphoryation sites
+    substitutions:
+      
+      "S": E
+      # Better replacements than glutamate should be used 
+      # for threonines and tyrosines
+      "T": E
+      "Y": E
+
+
+
+#------------------------------- iLIR --------------------------------#
+
+
+
+# iLIR configuration
+ilir:
+
+  # iLIR server to be used ('cyprus' or 'warwick')
+  server: "warwick"
+  
+  # Name of the directory that will contain all iLIR results 
+  # (the same directory name will be used both for the results
+  # of the wild-type and for those of the variants)
+  dir_name: ilir
+  
+  # Suffix to be used for iLIR output files
+  out_suffix: -ilir
+
+
+#------------------------------ NetPhos ------------------------------#
+
+
+
+# NetPhos configuration
+netphos:
+  
+  # Path to the NetPhos executable
+  executable: netphos
+  
+  # Name of the directory that will contain the NetPhos results
+  dir_name: netphos
+  
+  # Suffix to be used for raw output files
+  raw_out_suffix: -netphos
+  
+  # Suffix to be used for processed output files
+  proc_out_suffix: -netphos_processed
+
+
+
+#------------------------------ Spider3 ------------------------------#
+
+
+
+# Spider3 configuration
+spider3:
+  
+  # Whehter to run Spider3 for the wild-type protein and all variants
+  run: True
+  
+  # Path to the Spider3 executable
+  executable: spider3
+  
+  # Name of the directory that will contain all Spider3 results 
+  # (the same directory name will be used both for the results 
+  # of the wild-type and for those of the variants)
+  dir_name: spider3
+  
+  # Data aggregation configuration
+  aggregation:
+    
+    # Suffix for the aggregated output files
+    out_suffix: -spider3
+
+
+
+#------------------------------ PSIPRED ------------------------------#
+
+
+
+# PSIPRED configuration
+psipred:
+  
+  # whether to run PSIPRED for the wild-type protein and all variants
+  run: False
+  
+  # Path to the PSIPRED executable
+  executable: /usr/local/psipred/runpsipred
+  
+  # Name of the directory that will contain all PSIPRED results 
+  # (the same directory name will be used both for the results 
+  # of the wild-type and for those of the variants)
+  dir_name: psipred
+  
+  # Data aggregation configuration
+  aggregation:
+    
+    # Suffix for the aggregated output files
+    out_suffix: -psipred
+    
+    # Names of the Matplotlib color maps to be used to show the
+    # propensities of the different secondary structures in the
+    # HTML aggregation file (Coil, Helix, Strand)
+    cmaps: Blues, Greens, Oranges
+    
+    # Length of each chunk of residues to be shown on each line
+    # in the HTML aggregation file (especially useful for really
+    # long protein sequences)
+    chunk_size: 20
