@@ -10,7 +10,7 @@ The pipeline takes in input a list of UniProt IDs and for each ID:
 
 * gets the corresponding protein sequence from UniProt;
 
-* predicts LIR motifs in the sequence using `iLIR`[^kalvari2014];
+* predicts LIR motifs in the sequence using `iLIR`[^kalvari2014](if a custom LIRs list has not been provided with the `--lirs` option);
 * predicts possible phosphorylation sites within those motifs using `NetPhos` [^blom1999]. The motifs that can also be extended C-term or N-term by a variable number of residues to include flanking regions;
 * constructs all possible LIR sequence variants with a subset of the phosphorylation sites mutated to phosphomimetic residues (to mimic a phosphorylation event);
 * predicts the secondary structure propensities of the wild-type LIR sequence and of all the variants to assess possible local changes in conformational propensities upon phosphorylation. This is done using `Spider3` [^heffernan2017] and `PSIPRED` [^mcguffin2000].
@@ -48,7 +48,7 @@ This is the executable responsible for running the phospho-iLIR pipeline.
 
 #### Command line
 
-`phospho_iLIR [-h] -i IDSFILE -c CONFIGFILE [-d WORKDIR] [-n NPROC]`
+`phospho_iLIR [-h] -i IDSFILE -c CONFIGFILE [-d WORKDIR] [--lirs LIRS_FILE] [-n NPROC]`
 
 #### Options
 
@@ -58,6 +58,7 @@ This is the executable responsible for running the phospho-iLIR pipeline.
 | `-i`, `--idsfile`    | File containing the list of UniProt IDs.                     |
 | `-c`, `--configfile` | Configuration file.                                          |
 | `-d`, `--workdir`    | Working directory. The default is the current working directory. |
+| `--lirs`             | Custom list of LIRs to investigate, the iLIR step on wt sequence will be skipped.      |
 | `-l`, `--logfile`    | Log file. The default is phospho-_LIR.log, The log messages will be printed both to the log file and the standard output. |
 | `-n`, `--nproc`      | Number of processes to use. The default is one process.      |
 
@@ -71,6 +72,14 @@ A file containig a newline-separated list of UniProt IDs.
 
 A YAML file containing the script configuration (please look at the `config.yaml` file in the `phospho_iLIR/config` directory for an example of configuration file).
 
+##### Custom list of LIRs
+
+The user can submit a custom list of LIRs. The file needs to be comma separated and resembles the iLIR output (with some differences).
+The header (first line) contains: the line index, the position of the starting residue, the position of the ending residue, the LIR
+sequence (i.e., `,START,END,LIR sequence`).
+Every other line contains the LIRs info (i.e., `0,515,520,LQFLET`).
+The LIR sequence starts from the two residues N-term of the core plus the four core aminoacids.  
+
 #### Outputs
 
 Note: the generation of the outputs for Spider3 and/or PSIPRED depends on whether in the configuration file the option for running them was turned on/off.
@@ -80,6 +89,8 @@ Suppose we have a list containing only one UniProt ID named Q0000, and we find t
 ```
 Q00000
 ----| Q00000.fasta
+----| Q00000_SLIMfast_input.csv
+----| Q00000_SLIMfast_input_core.csv
 ----| ilir
 ----| netphos
 ----| psipred
@@ -127,6 +138,10 @@ Q00000
 The directories `ilir`, `netphos`, `psipred` and `spider3` contain the results of iLIR, NetPhos, PSIPRED and Spider3 for the willd-type sequence and each LIR variant (the names of these directories can be changed in the configuration file). 
 
 `.fasta` files are FASTA files containing the sequence of either the full-length protein corresponding to the UniProt ID (`Q00000.fasta`) or a wild-type LIR sequence (`lir_*.fasta`) or the sequence of a full-length protein variant containing phosphomimetic mutations in a LIR motif  (`var_*.fasta`).
+
+`_SLIMfast_input` is the csv file needed for the SLIMfast run. It is generated starting from the `lir_*-variants.csv` files. It contains the whole LIR sequence.
+
+`_SLIMfast_input_core` is the csv file needed for the SLIMfast run. It is generated starting from the `lir_*-variants.csv` files. It contains the core LIR sequence.
 
 `lir_*-variants.csv` and `lir_*-variants.md` are files summarizing the information about all the phosphomimetic variants generated for a specific LIR, either as a dataframe in a CSV file or as Markdown file (useful as a report).
 

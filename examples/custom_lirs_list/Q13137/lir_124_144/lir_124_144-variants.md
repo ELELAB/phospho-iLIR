@@ -1,0 +1,6 @@
+| Name | Sequence | Start | End |
+|---|---|---|---|
+| Q13137 | FRPENEEDILVVTTQGEVEE | 125 | 144 |
+| var_T138E | FRPENEEDILVVT**E**QGEVEE | 125 | 144 |
+| var_T137E | FRPENEEDILVV**E**TQGEVEE | 125 | 144 |
+| var_T137E_T138E | FRPENEEDILVV**EE**QGEVEE | 125 | 144 |
