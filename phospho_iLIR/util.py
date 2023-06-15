@@ -1708,7 +1708,7 @@ def write_SLIMfast_input(uniprot_id,
     logger = reset_worker_logger(log_file)
 
     #define column new names
-    col_names = ["uniprot_ID",
+    col_names = ["uniprot_id",
              "slim_sequence",
              "slim_start",
              "slim_end",
@@ -1741,7 +1741,7 @@ def write_SLIMfast_input(uniprot_id,
                 #append the wt info without index
                 output.to_csv(csv,
                               mode="a",
-                              columns=["uniprot_ID",
+                              columns=["uniprot_id",
                                        "slim_type",
                                        "slim_start",
                                        "slim_sequence",
@@ -1795,7 +1795,7 @@ def write_SLIMfast_input(uniprot_id,
                 #append the wt info without index
                 output.to_csv(csv,
                               mode="a",
-                              columns=["uniprot_ID",
+                              columns=["uniprot_id",
                                        "slim_type",
                                        "slim_start",
                                        "slim_sequence",
