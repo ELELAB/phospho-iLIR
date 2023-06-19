@@ -1721,7 +1721,7 @@ def write_SLIMfast_input(uniprot_id,
     #create SLIMfast input csv with header
     with open(uniprot_id+"/"+ uniprot_id +\
               "_SLIMfast_input.csv", "w") as csv:
-        csv.write("uniprot_ID,slim_type,slim_start,"\
+        csv.write("uniprot_id,slim_type,slim_start,"\
                   "slim_sequence,slim_end" + "\n")
 
         #append the wt info from every lir folder to the SLIMfast input
@@ -1768,7 +1768,7 @@ def write_SLIMfast_input(uniprot_id,
     #create SLIMfast core csv with header
     with open(uniprot_id+"/"+ uniprot_id +
               "_SLIMfast_input_core.csv", "w") as csv:
-        csv.write("uniprot_ID,slim_type,slim_start,"\
+        csv.write("uniprot_id,slim_type,slim_start,"\
                   "slim_sequence,slim_end" + "\n")
 
         #append the wt info from every lir folder to the SLIMfast input
