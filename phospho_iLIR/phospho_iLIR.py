@@ -8,8 +8,10 @@
 #    in the secondary structure possibly due to phosphorylation
 #    events.
 #
-#    Copyright (C) 2022 Valentina Sora 
+#    Copyright (C) 2026 Valentina Sora 
 #                       <sora.valentina1@gmail.com>
+#                       Mattia Utichi
+#                       <biomatt90@gmail.com>
 #                       Matteo Tiberti 
 #                       <matteo.tiberti@gmail.com> 
 #                       Elena Papaleo
@@ -729,7 +731,6 @@ def run(logger):
                     util.write_SLIMfast_input,
                     uniprot_id = up_id,
                     l_context = L_CONTEXT,
-                    r_context = R_CONTEXT,
                     **log_opts))
 
         # Gather all orphan futures still running
