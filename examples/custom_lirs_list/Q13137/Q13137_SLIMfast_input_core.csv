@@ -1,2 +1,2 @@
-uniprot_ID,slim_type,slim_start,slim_sequence,slim_end
-Q13137,LIR,133,ILVV,136
+slim_name,slim_start,slim_seq,slim_end,slim_acc_res
+LIR,133,ILVV,136,133:136
